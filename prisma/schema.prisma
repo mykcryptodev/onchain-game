@@ -51,6 +51,16 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
+
+    gamesCreated Game[] @relation(name: "GameCreatedBy")
+
+    gamesPlayed Game[] @relation(name: "GamePlayers")
+
+    roundsPlayed Round[]
+
+    bets     Bet[]
+    hand     Hand[]
+    isDealer Boolean @default(false)
 }
 
 model VerificationToken {
@@ -59,4 +69,69 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+model Game {
+    id          String  @id @default(cuid())
+    name        String
+    description String?
+    image       String?
+    createdBy   User    @relation(fields: [createdById], references: [id], onDelete: Cascade, name: "GameCreatedBy")
+    createdById String
+    players     User[]  @relation(name: "GamePlayers")
+    deckId      String
+    rounds      Round[]
+    hand        Hand[]
+}
+
+model Round {
+    id              String   @id @default(cuid())
+    gameId          String
+    game            Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+    players         User[]
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+    betsFinal       Boolean  @default(false)
+    bets            Bet[]
+    hands           Hand[]
+    status          String
+    currentBetIndex Int
+}
+
+model Bet {
+    id        String   @id @default(cuid())
+    roundId   String
+    round     Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+    playerId  String
+    player    User     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    amount    Int
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Hand {
+    id        String   @id @default(cuid())
+    playerId  String
+    player    User     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    gameId    String
+    game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+    cards     Card[]
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    status    String
+    round     Round?   @relation(fields: [roundId], references: [id])
+    roundId   String?
+}
+
+model Card {
+    id        String   @id @default(cuid())
+    value     String
+    suit      String
+    code      String
+    image     String
+    isVisible Boolean
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    hand      Hand?    @relation(fields: [handId], references: [id])
+    handId    String?
 }
