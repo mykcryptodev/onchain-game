@@ -421,6 +421,7 @@ export const gameRouter = createTRPCRouter({
         const existingHand = await ctx.db.hand.findFirst({
           where: {
             gameId: input.id,
+            roundId: round.id,
             playerId,
           },
         });
