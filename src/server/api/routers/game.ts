@@ -440,4 +440,135 @@ export const gameRouter = createTRPCRouter({
         },
       });
     }),
+  hit: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: {
+          id: input.id,
+        },
+        include: {
+          rounds: {
+            where: {
+              status: "active",
+            },
+            include: {
+              players: true,
+              bets: true,
+              hands: {
+                include: {
+                  cards: true,
+                },
+              },
+            }
+          },
+        }
+      });
+      if (!game) {
+        throw new Error("Game not found");
+      }
+      if (game.rounds.length < 1) {
+        throw new Error("No active round");
+      }
+      // round is the first active round
+      const round = game.rounds.find((round) => round.status === "active");
+      if (!round) {
+        throw new Error("No active round");
+      }
+      // player must be in the round
+      if (!round.players.some((player) => player.id === ctx.session.user.id)) {
+        throw new Error("Player not in round");
+      }
+      // player must have a hand
+      const hand = round.hands.find((hand) => hand.playerId === ctx.session.user.id);
+      if (!hand) {
+        throw new Error("Player has no hand");
+      }
+      // hand must be active
+      if (hand.status !== "active") {
+        throw new Error("Hand not active");
+      }
+      // hand must not be busted
+      if (hand.cards.reduce((acc, card) => acc + (card.value === 'A' ? 11 : card.value === 'K' || card.value === 'Q' || card.value === 'J' || card.value === '10' ? 10 : parseInt(card.value)), 0) > 21) {
+        throw new Error("Hand is busted");
+      }
+      // get the next card
+      const dealRes = await fetch(`https://www.deckofcardsapi.com/api/deck/${game.deckId}/draw/?count=1`);
+      const dealData = await dealRes.json() as DealData;
+      const card = dealData.cards[0];
+      if (!card) {
+        throw new Error("No card drawn");
+      }
+      // add the card to the hand
+      await ctx.db.card.create({
+        data: {
+          handId: hand.id,
+          code: card.code,
+          image: card.image,
+          value: card.value,
+          suit: card.suit,
+          isVisible: true,
+        },
+      });
+      // check if the hand is busted
+      const handWithCard = await ctx.db.hand.findUnique({
+        where: {
+          id: hand.id,
+        },
+        include: {
+          cards: true,
+        },
+      });
+      if (!handWithCard) {
+        throw new Error("Hand not found");
+      }
+      const handValue = handWithCard.cards.reduce((acc, card) => {
+        const value = card.value === 'A' ? 11 : // Treat Aces as 11 initially
+          ['KING', 'QUEEN', 'JACK'].includes(card.value) ? 10 : // Face cards are 10
+          parseInt(card.value) || 0; // Other cards use their numeric value, or 0 if not a number
+      
+        // If the total exceeds 21 and there's an Ace that was counted as 11, treat it as 1 instead
+        if (acc + value > 21 && card.value === 'A') {
+          return acc + 1;
+        }
+      
+        return acc + value;
+      }, 0);
+      if (handValue > 21) {
+        // bust the hand
+        await ctx.db.hand.update({
+          where: {
+            id: hand.id,
+          },
+          data: {
+            status: "busted",
+          },
+        });
+        // make the next hand active
+        const nextHand = round.hands.find((hand) => hand.status === "pending");
+        if (!nextHand) {
+          // if there is no next hand, end the round
+          return await ctx.db.round.update({
+            where: {
+              id: round.id,
+            },
+            data: {
+              status: "ended",
+            },
+          });
+        }
+        // make the next hand active
+        return await ctx.db.hand.update({
+          where: {
+            id: nextHand.id,
+          },
+          data: {
+            status: "active",
+          },
+        });
+      }
+      return handWithCard;
+    }),
 });

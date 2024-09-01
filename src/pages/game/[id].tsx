@@ -1,14 +1,15 @@
 import { Avatar, Name } from "@coinbase/onchainkit/identity";
 import { type NextPage } from "next";
 import { type GetServerSideProps } from "next";
-import { useSession } from "next-auth/react";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 import { useMemo } from "react";
 
 import Join from "~/components/Game/Join";
 import Leave from "~/components/Game/Leave";
 import CreateRound from "~/components/Game/Round/Create";
 import { Deal } from "~/components/Game/Round/Deal";
+import { HandComponent } from "~/components/Game/Round/Hand";
 import PlaceBet from "~/components/Game/Round/PlaceBet";
 import { api } from "~/utils/api";
 
@@ -56,18 +57,14 @@ export const Game: NextPage<Props> = ({ id }) => {
               <Name address={player.address} />
             </div>
             {activeRound?.hands.find((hand) => hand.playerId === player.id) && (
-              <div className="flex items-center gap-1">
-                {activeRound.hands.find((hand) => hand.playerId === player.id)?.cards.map((card) => (
-                  <div key={card.id}>
-                    <Image
-                      src={card.image}
-                      alt={card.code}
-                      width={100}
-                      height={150}
-                    />
-                    {card.code}
-                  </div>
-                ))}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-1">
+                  <HandComponent 
+                    gameId={id}
+                    hand={activeRound.hands.find((hand) => hand.playerId === player.id)}
+                    onAction={() => refetchGame()}
+                  />
+                </div>
               </div>
             )}
           </div>
