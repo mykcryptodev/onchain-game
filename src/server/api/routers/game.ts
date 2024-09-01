@@ -1,4 +1,4 @@
-import { type Card,type Player,type PrismaClient } from "@prisma/client";
+import { type Card,type PrismaClient } from "@prisma/client";
 import { tracked } from "@trpc/server";
 import EventEmitter, { on } from "events";
 import { zeroAddress } from "viem";
@@ -465,6 +465,7 @@ export const gameRouter = createTRPCRouter({
           id: input.id,
         },
         include: {
+          players: true,
           rounds: {
             where: {
               status: "active",
@@ -495,8 +496,9 @@ export const gameRouter = createTRPCRouter({
       if (!await playerHasBetInActiveRoundOfGame({ ctx, gameId: input.id, userId: ctx.session.user.id })) {
         throw new Error("Player not in round");
       }
+      const userPlayer = game.players.find((player) => player.userId === ctx.session.user.id);
       // player must have a hand
-      const hand = round.hands.find((hand) => hand.playerId === ctx.session.user.id);
+      const hand = round.hands.find((hand) => hand.playerId === userPlayer?.id);
       if (!hand) {
         throw new Error("Player has no hand");
       }
