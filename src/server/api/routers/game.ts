@@ -211,27 +211,24 @@ export const gameRouter = createTRPCRouter({
           id: input.id,
         },
         include: {
-          players: true,
+          players: {
+            include: {
+              user: true,
+            }
+          },
         }
       });
       if (!game) {
         throw new Error("Game not found");
       }
       // find the player in the game with the user id for this session and disconnect them
-      const player = game.players.find((player) => player.id === ctx.session.user.id);
+      const player = game.players.find((player) => player.user.id === ctx.session.user.id);
       if (!player) {
         throw new Error("Player not found in game");
       }
-      const left = await ctx.db.game.update({
+      const left = await ctx.db.player.delete({
         where: {
-          id: input.id,
-        },
-        data: {
-          players: {
-            disconnect: {
-              id: player.id,
-            },
-          },
+          id: player.id,
         },
       });
       ee.emit(`updateGame`, input.id);

@@ -88,12 +88,18 @@ export const Game: NextPage<Props> = ({ id }) => {
                 />
               </div>
             )}
-            <Join
-              key={i}
-              id={id}
-              onJoined={refetchGame}
-              position={i}
-            />
+            {/* if there is no player in this position, show a Join component */}
+            {!game.players.find((player) => player.position === i) && (
+              <Join
+                id={id}
+                onJoined={refetchGame}
+                position={i}
+              />
+            )}
+            {/* if the player is in this position and is in the session, show a leave button */}
+            {game.players.find((player) => player.position === i && player.user.id === session?.user?.id) && (
+              <Leave id={id} onLeft={refetchGame} />
+            )}
           </div>
         ))}
       </div>
