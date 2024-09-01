@@ -384,10 +384,19 @@ export const gameRouter = createTRPCRouter({
       const dealRes = await fetch(`https://www.deckofcardsapi.com/api/deck/${game.deckId}/draw/?count=${numCardsDrawn}`);
       const dealData = await dealRes.json() as DealData;
 
-      // give each player their hand
+      // Sort the players based on their position and create a mapping of playerId to position
+      const playerPositions = roundWithDealer.bets
+        .sort((a, b) => a.player.position - b.player.position)
+        .reduce((acc, bet, index) => {
+          acc[bet.playerId] = index;
+          return acc;
+        }, {} as Record<string, number>
+      );
+
+      // Give each player their hand in the sorted order
       const playerHands = dealData.cards.reduce((acc, card, i) => {
-        const playerIndex = i % numPlayers;
-        const playerId = roundWithDealer.bets[playerIndex]?.playerId ?? ctx.session.user.id;
+        const playerIndex = playerPositions[roundWithDealer.bets[i % numPlayers]!.playerId]!;
+        const playerId = roundWithDealer.bets[playerIndex]!.playerId;
 
         if (!acc[playerId]) {
           acc[playerId] = [];
@@ -396,15 +405,12 @@ export const gameRouter = createTRPCRouter({
         return acc;
       }, {} as Record<string, DeckCard[]>);
 
-      // sort the players based on the bets in the round and the position number of the players
-      const sortedPlayerIds = roundWithDealer.bets.sort((a, b) => a.player.position - b.player.position).map((bet) => bet.playerId);
-
       // update the player hands
       await Promise.all(Object.entries(playerHands).map(async ([playerId, hand], index) => {
         const isDealer = playerId === dealerPlayer.id;
         const player = await ctx.db.player.findUnique({
           where: {
-            id: sortedPlayerIds[index],
+            id: playerId,
           },
         });
 
@@ -636,7 +642,11 @@ export const gameRouter = createTRPCRouter({
               status: "active",
             },
             include: {
-              bets: true,
+              bets: {
+                include: {
+                  player: true,
+                }
+              },
               hands: {
                 include: {
                   cards: true,
@@ -683,8 +693,33 @@ export const gameRouter = createTRPCRouter({
           status: "standing",
         },
       });
-      // make the next hand active
-      const nextHand = round.hands.find((hand) => hand.status === "pending");
+      // find the player in the game with the next position and a bet
+      // the next position may be empty so we need to loop through the players
+      // sort the players in the round bets by position
+      const sortedPlayers = round.bets.sort((a, b) => a.player.position - b.player.position);
+      const currentPlayer = sortedPlayers.findIndex((bet) => bet.playerId === userPlayer.id);
+      const nextPlayer = sortedPlayers[currentPlayer + 1];
+
+      console.log("sortedPlayers:", JSON.stringify(sortedPlayers, null, 2));
+      console.log("Next player:", nextPlayer);
+
+      if (!nextPlayer) {
+        // if there is no next player, end the round
+        const updatedRound = await ctx.db.round.update({
+          where: {
+            id: round.id,
+          },
+          data: {
+            status: "ended",
+          },
+        });
+        ee.emit(`updateGame`, input.id);
+        return updatedRound;
+      }
+
+      // find the next player's hand
+      const nextHand = round.hands.find((hand) => hand.playerId === nextPlayer.playerId);
+
       if (!nextHand) {
         // if there is no next hand, end the round
         return await ctx.db.round.update({
@@ -718,7 +753,11 @@ export const gameRouter = createTRPCRouter({
           id: input.id,
         },
         include: {
-          players: true,
+          players: {
+            include: {
+              user: true,
+            }
+          },
           rounds: {
             where: {
               status: "active",
@@ -759,19 +798,33 @@ export const gameRouter = createTRPCRouter({
       }
 
       // Find the dealer's hand
-      const dealerHand = round.hands.find(async (hand) => hand.playerId === (await ctx.db.user.findFirst({ where: { isDealer: true } }))?.id);
+      const dealerPlayer = game.players.find((player) => player.user.isDealer);
+      console.log(JSON.stringify(dealerPlayer, null, 2));
+      if (!dealerPlayer) {
+        throw new Error("Dealer not found");
+      }
+      let dealerHand = round.hands.find((hand) => hand.playerId === dealerPlayer.id)!;
       if (!dealerHand) {
         throw new Error("Dealer hand not found");
       }
 
+      console.log('first time');
+      console.log({ dealerHand: JSON.stringify(dealerHand, null, 2) });
+      console.log('value', dealerHand.cards.reduce((sum, card) => sum + getCardValue(card.value), 0));
+      console.log('end of first time');
+
       // Play the dealer's hand
       while (dealerHand.cards.reduce((sum, card) => sum + getCardValue(card.value), 0) < 17) {
+        console.log({ dealerHand: JSON.stringify(dealerHand, null, 2) });
+        console.log('value', dealerHand.cards.reduce((sum, card) => sum + getCardValue(card.value), 0));
         const dealRes = await fetch(`https://www.deckofcardsapi.com/api/deck/${game.deckId}/draw/?count=1`);
         const dealData = await dealRes.json() as DealData;
         const card = dealData.cards[0];
         if (!card) {
           throw new Error("No card drawn");
         }
+
+        // add the card to the hand
         await ctx.db.card.create({
           data: {
             handId: dealerHand.id,
@@ -782,7 +835,23 @@ export const gameRouter = createTRPCRouter({
             isVisible: true,
           },
         });
+
+        // Fetch the updated dealer hand from the database and update local value
+        const updatedDealerHand = await ctx.db.hand.findUnique({
+          where: {
+            id: dealerHand.id,
+          },
+          include: {
+            cards: true,
+          },
+        });
+        if (!updatedDealerHand) {
+          throw new Error("Dealer hand not found");
+        }
+        dealerHand = updatedDealerHand;
       }
+      console.log('value', dealerHand.cards.reduce((sum, card) => sum + getCardValue(card.value), 0));
+
 
       // make all of the dealer's cards visible
       await Promise.all(dealerHand.cards.map(async (card) => {
