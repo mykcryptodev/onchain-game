@@ -328,30 +328,7 @@ export const gameRouter = createTRPCRouter({
       id: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const game = await ctx.db.game.findUnique({
-        where: {
-          id: input.id,
-        },
-        include: {
-          players: {
-            include: {
-              user: true,
-            }
-          },
-          rounds: {
-            where: {
-              status: "active",
-            },
-            include: {
-              bets: {
-                include: {
-                  player: true,
-                }
-              },
-            }
-          },
-        }
-      });
+      const game = await getGame({ input, ctx });
       if (!game) {
         throw new Error("Game not found");
       }
@@ -373,28 +350,36 @@ export const gameRouter = createTRPCRouter({
       }
 
       // get the dealer in the game
-      const dealer = game.players.find((player) => player.user.isDealer);
-      if (!dealer) {
+      const dealerPlayer = game.players.find((player) => player.user.isDealer);
+      if (!dealerPlayer) {
         throw new Error("Dealer not found");
       }
-      await Promise.all([
-        // add a bet of zero for the dealer
-        ctx.db.bet.create({
+
+      // Check if the dealer already has a bet for this round
+      const dealerBet = round.bets.find((bet) => bet.playerId === dealerPlayer.id);
+
+      if (!dealerBet) {
+        // If the dealer doesn't have a bet, create one
+        await ctx.db.bet.create({
           data: {
-            playerId: dealer.id,
+            playerId: dealerPlayer.id,
             roundId: round.id,
             amount: 0,
           },
-        }),
-      ])
+        });
+      }
 
-      const roundWithDealer = game.rounds.find((round) => round.status === "active");
+      const gameWithDealerBet = await getGame({ input, ctx });
+      if (!gameWithDealerBet) {
+        throw new Error("Game with dealer bet not found");
+      }
+      const roundWithDealer = gameWithDealerBet.rounds.find((round) => round.status === "active");
       if (!roundWithDealer) {
         throw new Error("No active round with dealer");
       }
 
       // deal cards
-      const numPlayers = roundWithDealer.bets.length; // dealer is included
+      const numPlayers = roundWithDealer.bets.length // dealer included
       const numCardsDrawn = numPlayers * 2;
       const dealRes = await fetch(`https://www.deckofcardsapi.com/api/deck/${game.deckId}/draw/?count=${numCardsDrawn}`);
       const dealData = await dealRes.json() as DealData;
@@ -411,26 +396,51 @@ export const gameRouter = createTRPCRouter({
         return acc;
       }, {} as Record<string, DeckCard[]>);
 
+      // sort the players based on the bets in the round and the position number of the players
+      const sortedPlayerIds = roundWithDealer.bets.sort((a, b) => a.player.position - b.player.position).map((bet) => bet.playerId);
+
       // update the player hands
       await Promise.all(Object.entries(playerHands).map(async ([playerId, hand], index) => {
-        const isDealer = playerId === dealer.id;
-        await ctx.db.hand.create({
-          data: {
-            playerId,
-            roundId: roundWithDealer.id,
-            gameId: game.id,
-            status: index === 0 ? "active" : "pending",
-            cards: {
-              create: hand.map((card, cardIndex) => ({
-                code: card.code,
-                image: card.image,
-                value: card.value,
-                suit: card.suit,
-                isVisible: isDealer && cardIndex === 0 ? false : true,
-              })),
-            },
+        const isDealer = playerId === dealerPlayer.id;
+        const player = await ctx.db.player.findUnique({
+          where: {
+            id: sortedPlayerIds[index],
           },
         });
+
+        if (!player) {
+          throw new Error(`Player with id ${playerId} not found`);
+        }
+
+        const existingHand = await ctx.db.hand.findFirst({
+          where: {
+            gameId: input.id,
+            playerId,
+          },
+        });
+
+        if (existingHand) {
+          console.log(`Player ${playerId} already has a hand for this game`);
+          // Skip creating a new hand for this player
+        } else {
+          await ctx.db.hand.create({
+            data: {
+              gameId: input.id,
+              roundId: round.id,
+              playerId: playerId,
+              status: index === 0 ? "active" : "pending",
+              cards: {
+                create: hand.map((card, cardIndex) => ({
+                  code: card.code,
+                  image: card.image,
+                  value: card.value,
+                  suit: card.suit,
+                  isVisible: isDealer && cardIndex === 0 ? false : true,
+                })),
+              },
+            },
+          });
+        }
       }));
 
       // finalize the round

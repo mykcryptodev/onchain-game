@@ -113,25 +113,21 @@ export const Game: NextPage<Props> = ({ id }) => {
             {game.players.find((player) => player.position === i && player.user.id === session?.user?.id) && (
               <Leave id={id} onLeft={refetchGame} />
             )}
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center gap-2">
-        {game.players.map((player) => (
-          <div key={player.id} className="flex flex-col gap-2">
-            {activeRound?.hands.find((hand) => hand.playerId === player.id) && (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-1">
-                  <HandComponent 
-                    gameId={id}
-                    hand={activeRound.hands.find((hand) => hand.playerId === player.id)}
-                    onAction={() => refetchGame()}
-                  />
-                </div>
+            {/* print the hand for the player in this position */}
+            {activeRound?.hands.find((hand) => hand.playerId === game.players.find((player) => player.position === i)?.id) && (
+              <div>
+                <HandComponent 
+                  gameId={id}
+                  players={game.players}
+                  hand={activeRound.hands.find((hand) => hand.playerId === game.players.find((player) => player.position === i)!.id)}
+                  onAction={() => refetchGame()}
+                />
               </div>
             )}
           </div>
         ))}
+      </div>
+      <div className="flex items-center gap-2">
         {activeRound?.hands.find(hand => {
           const dealer = game.players.find(player => player.user.isDealer);
           if (!dealer) return false;

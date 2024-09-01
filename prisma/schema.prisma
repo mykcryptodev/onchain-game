@@ -56,7 +56,6 @@ model User {
 
     gamesPlayed Player[]
 
-    hand     Hand[]
     isDealer Boolean @default(false)
 }
 
@@ -90,6 +89,7 @@ model Player {
   position  Int
   @@unique([gameId, position])
   bets Bet[]
+  hands Hand[]
 }
 
 model Round {
@@ -120,15 +120,15 @@ model Bet {
 model Hand {
     id        String   @id @default(cuid())
     playerId  String
-    player    User     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    player    Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
     gameId    String
     game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
     cards     Card[]
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     status    String
-    round     Round?   @relation(fields: [roundId], references: [id])
-    roundId   String?
+    round     Round   @relation(fields: [roundId], references: [id])
+    roundId   String
 }
 
 model Card {

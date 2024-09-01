@@ -1,4 +1,4 @@
-import { type Card, type Hand } from "@prisma/client";
+import { type Card, type Hand,type Player } from "@prisma/client";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { type FC,useMemo } from "react";
@@ -9,17 +9,19 @@ type Props = {
   hand?: Hand & {
     cards: Card[];
   };
+  players: Player[];
   gameId: string;
   onAction: (action: "hit" | "stand") => void;
 };
-export const HandComponent: FC<Props> = ({ hand, gameId, onAction }) => {
+export const HandComponent: FC<Props> = ({ hand, gameId, players, onAction }) => {
+  const userPlayer = players.find((player) => player.id === hand?.playerId);
   const { data: session } = useSession();
   const { mutateAsync: hit } = api.game.hit.useMutation();
   const { mutateAsync: stand } = api.game.stand.useMutation();
 
   const isPlayerHand = useMemo(() => {
-    return session?.user?.id === hand?.playerId;
-  }, [session?.user?.id, hand?.playerId]);
+    return session?.user?.id === userPlayer?.userId;
+  }, [session?.user?.id, userPlayer?.userId]);
 
   if (!hand) return null;
   return (
