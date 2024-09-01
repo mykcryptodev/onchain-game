@@ -1,9 +1,13 @@
-import { type Card } from "@prisma/client";
+import { type Card,type Game,type PrismaClient } from "@prisma/client";
+import { tracked } from "@trpc/server";
+import EventEmitter, { on } from "events";
 import { zeroAddress } from "viem";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
 import { type DealData, type DeckCard, type DeckData } from "~/types/deck";
+
+const ee = new EventEmitter();
 
 const cardFids = {
   'A': 99, // jesse pollak
@@ -98,39 +102,31 @@ export const gameRouter = createTRPCRouter({
       id: z.string(),
     }))
     .query(async ({ ctx, input }) => {
-      const game = await ctx.db.game.findUnique({
-        where: {
-          id: input.id,
-        },
-        include: {
-          players: true,
-          rounds: {
-            include: {
-              players: true,
-              bets: true,
-              hands: {
-                include: {
-                  cards: true,
-                },
-              },
-            }
-          },
-        },
-      });
-      if (!game) {
-        throw new Error("Game not found");
+      return await getGame({ input, ctx });
+    }),
+  onUpdate: publicProcedure
+    .input(
+      z.object({
+        // lastEventId is the last event id that the client has received
+        // On the first call, it will be whatever was passed in the initial setup
+        // If the client reconnects, it will be the last event id that the client received
+        lastEventId: z.string().nullish(),
+      }).optional(),
+    )
+    .subscription(async function* (opts) {
+      console.log("Subscription initiated for game:", opts?.input?.lastEventId);
+      if (opts?.input?.lastEventId) {
+        // [...] get the game since the last event id and yield them
+        const game = await getGame({ input: { id: opts.input.lastEventId }, ctx: opts.ctx });
+        yield tracked(game.id, game);
       }
-      // before you return the game, hide cards that are not visible
-      return {
-        ...game,
-        rounds: game.rounds.map((round) => ({
-          ...round,
-          hands: round.hands.map((hand) => ({
-            ...hand,
-            cards: hand.cards.map((card) => transformCard(card)),
-          })),
-        })),
-      };
+      // listen for new events
+      for await (const [data] of on(ee, 'updateGame')) {
+        const gameId = data as string;
+        const game = await getGame({ input: { id: gameId }, ctx: opts.ctx });
+        // tracking the post id ensures the client can reconnect at any time and get the latest events this id
+        yield tracked(game.id, game);
+      }
     }),
   join: protectedProcedure
     .input(z.object({
@@ -286,13 +282,15 @@ export const gameRouter = createTRPCRouter({
       if (round.bets.some((bet) => bet.playerId === ctx.session.user.id)) {
         throw new Error("Player already placed a bet");
       }
-      return await ctx.db.bet.create({
+      const bet = await ctx.db.bet.create({
         data: {
           playerId: ctx.session.user.id,
           roundId: round.id,
           amount: input.bet,
         },
       });
+      ee.emit(`updateGame`, input.id);
+      return bet;
     }),
   deal: protectedProcedure
     .input(z.object({
@@ -812,4 +810,41 @@ function getCardValue(value: string): number {
   if (value === 'A') return 11; // Treat Aces as 11 initially
   if (['KING', 'QUEEN', 'JACK'].includes(value)) return 10; // Face cards are 10
   return parseInt(value) || 0; // Other cards use their numeric value, or 0 if not a number
+}
+
+// helper function to get a game with all of the data we need
+async function getGame({ input, ctx }: { input: { id: string }, ctx: { db: PrismaClient } }) {
+  const game = await ctx.db.game.findUnique({
+    where: {
+      id: input.id,
+    },
+    include: {
+      players: true,
+      rounds: {
+        include: {
+          players: true,
+          bets: true,
+          hands: {
+            include: {
+              cards: true,
+            },
+          },
+        }
+      },
+    },
+  });
+  if (!game) {
+    throw new Error("Game not found");
+  }
+  // before you return the game, hide cards that are not visible
+  return {
+    ...game,
+    rounds: game.rounds.map((round) => ({
+      ...round,
+      hands: round.hands.map((hand) => ({
+        ...hand,
+        cards: hand.cards.map((card) => transformCard(card)),
+      })),
+    })),
+  };
 }

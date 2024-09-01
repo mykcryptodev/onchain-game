@@ -2,7 +2,7 @@ import { Avatar, Name } from "@coinbase/onchainkit/identity";
 import { type NextPage } from "next";
 import { type GetServerSideProps } from "next";
 import { useSession } from "next-auth/react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import Join from "~/components/Game/Join";
 import Leave from "~/components/Game/Leave";
@@ -26,11 +26,29 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 type Props = { id: string };
 export const Game: NextPage<Props> = ({ id }) => {
   const { data: session } = useSession();
-  const { data: game, refetch: refetchGame } = api.game.getById.useQuery({ id });
+  const { data: fetchedGame, refetch: refetchGame } = api.game.getById.useQuery({ id });
+  const [game, setGame] = useState<typeof fetchedGame>();
   const userIsPlayerInGame = useMemo(() => {
     return game?.players.some((player) => player.id === session?.user?.id);
   }, [game, session?.user]);
-  console.log({ game });
+  const gameSubscription = api.game.onUpdate.useSubscription(
+    { lastEventId: id },
+    {
+      onData: (updatedGame) => {
+        console.log("Subscription data received:", { updatedGame });
+        // void refetchGame();
+        setGame(updatedGame.data);
+      },
+      onError: (err) => {
+        console.error("Subscription error:", err);
+      },
+    }
+  );
+  useEffect(() => {
+    setGame(fetchedGame);
+  }, [fetchedGame]);
+  console.log({ game, gameSubscription });
+
 
   const activeRound = useMemo(() => {
     return game?.rounds.find((round) => round.status === "active");
