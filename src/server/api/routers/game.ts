@@ -1,4 +1,4 @@
-import { type Card,type PrismaClient } from "@prisma/client";
+import { type Card,type Player,type PrismaClient } from "@prisma/client";
 import { tracked } from "@trpc/server";
 import EventEmitter, { on } from "events";
 import { zeroAddress } from "viem";
@@ -171,7 +171,7 @@ export const gameRouter = createTRPCRouter({
       if (!game) {
         throw new Error("Game not found");
       }
-      if (game.players.some((player) => player.id === ctx.session.user.id)) {
+      if (game.players.some((player) => player.userId === ctx.session.user.id)) {
         throw new Error("Already joined game");
       }
       const joined = await ctx.db.game.update({
@@ -211,18 +211,14 @@ export const gameRouter = createTRPCRouter({
           id: input.id,
         },
         include: {
-          players: {
-            include: {
-              user: true,
-            }
-          },
+          players: true,
         }
       });
       if (!game) {
         throw new Error("Game not found");
       }
       // find the player in the game with the user id for this session and disconnect them
-      const player = game.players.find((player) => player.user.id === ctx.session.user.id);
+      const player = game.players.find((player) => player.userId === ctx.session.user.id);
       if (!player) {
         throw new Error("Player not found in game");
       }
@@ -285,8 +281,11 @@ export const gameRouter = createTRPCRouter({
               status: "active",
             },
             include: {
-              players: true,
-              bets: true,
+              bets: {
+                include: {
+                  player: true
+                }
+              },
             }
           },
         }
@@ -302,36 +301,25 @@ export const gameRouter = createTRPCRouter({
       if (!round) {
         throw new Error("No active round");
       }
+      const userPlayer = game.players.find((player) => player.userId === ctx.session.user.id);
       // player must be in the game
-      if (!game.players.some((player) => player.id === ctx.session.user.id)) {
+      if (!userPlayer) {
         throw new Error("Player not in game");
       }
-      // if the player is not already in the round, add them
-      if (!round.players.some((player) => player.id === ctx.session.user.id)) {
-        await ctx.db.round.update({
-          where: {
-            id: round.id,
-          },
-          data: {
-            players: {
-              connect: {
-                id: ctx.session.user.id,
-              },
-            },
-          },
-        });
-      }
       // player must not have already placed a bet
-      if (round.bets.some((bet) => bet.playerId === ctx.session.user.id)) {
+      if (round.bets.some((bet) => bet.player.userId === ctx.session.user.id)) {
         throw new Error("Player already placed a bet");
       }
+
+      // Create the bet
       const bet = await ctx.db.bet.create({
         data: {
-          playerId: ctx.session.user.id,
+          playerId: userPlayer.id,
           roundId: round.id,
           amount: input.bet,
         },
       });
+      
       ee.emit(`updateGame`, input.id);
       return bet;
     }),
@@ -345,13 +333,21 @@ export const gameRouter = createTRPCRouter({
           id: input.id,
         },
         include: {
+          players: {
+            include: {
+              user: true,
+            }
+          },
           rounds: {
             where: {
               status: "active",
             },
             include: {
-              players: true,
-              bets: true,
+              bets: {
+                include: {
+                  player: true,
+                }
+              },
             }
           },
         }
@@ -368,7 +364,7 @@ export const gameRouter = createTRPCRouter({
         throw new Error("No active round");
       }
       // player must be in the round
-      if (!round.players.some((player) => player.id === ctx.session.user.id)) {
+      if (!await playerHasBetInActiveRoundOfGame({ ctx, gameId: input.id, userId: ctx.session.user.id })) {
         throw new Error("Player not in round");
       }
       // there must be at least one bet
@@ -376,26 +372,12 @@ export const gameRouter = createTRPCRouter({
         throw new Error("No bets placed");
       }
 
-      // get the dealer
-      const dealer = await ctx.db.user.findFirstOrThrow({
-        where: {
-          isDealer: true
-        },
-      });
+      // get the dealer in the game
+      const dealer = game.players.find((player) => player.user.isDealer);
+      if (!dealer) {
+        throw new Error("Dealer not found");
+      }
       await Promise.all([
-        // add the dealer to the round
-        ctx.db.round.update({
-          where: {
-            id: round.id,
-          },
-          data: {
-            players: {
-              connect: {
-                id: dealer.id,
-              },
-            },
-          },
-        }),
         // add a bet of zero for the dealer
         ctx.db.bet.create({
           data: {
@@ -406,27 +388,7 @@ export const gameRouter = createTRPCRouter({
         }),
       ])
 
-      // refetch the game now that the dealer is in the round
-      const gameWithDealer = await ctx.db.game.findUnique({
-        where: {
-          id: input.id,
-        },
-        include: {
-          rounds: {
-            where: {
-              status: "active",
-            },
-            include: {
-              players: true,
-              bets: true,
-            }
-          },
-        }
-      });
-      if (!gameWithDealer) {
-        throw new Error("Game not found with dealer");
-      }
-      const roundWithDealer = gameWithDealer.rounds.find((round) => round.status === "active");
+      const roundWithDealer = game.rounds.find((round) => round.status === "active");
       if (!roundWithDealer) {
         throw new Error("No active round with dealer");
       }
@@ -456,7 +418,7 @@ export const gameRouter = createTRPCRouter({
           data: {
             playerId,
             roundId: roundWithDealer.id,
-            gameId: gameWithDealer.id,
+            gameId: game.id,
             status: index === 0 ? "active" : "pending",
             cards: {
               create: hand.map((card, cardIndex) => ({
@@ -498,7 +460,6 @@ export const gameRouter = createTRPCRouter({
               status: "active",
             },
             include: {
-              players: true,
               bets: true,
               hands: {
                 include: {
@@ -521,7 +482,7 @@ export const gameRouter = createTRPCRouter({
         throw new Error("No active round");
       }
       // player must be in the round
-      if (!round.players.some((player) => player.id === ctx.session.user.id)) {
+      if (!await playerHasBetInActiveRoundOfGame({ ctx, gameId: input.id, userId: ctx.session.user.id })) {
         throw new Error("Player not in round");
       }
       // player must have a hand
@@ -630,7 +591,6 @@ export const gameRouter = createTRPCRouter({
               status: "active",
             },
             include: {
-              players: true,
               bets: true,
               hands: {
                 include: {
@@ -653,7 +613,7 @@ export const gameRouter = createTRPCRouter({
         throw new Error("No active round");
       }
       // player must be in the round
-      if (!round.players.some((player) => player.id === ctx.session.user.id)) {
+      if (!await playerHasBetInActiveRoundOfGame({ ctx, gameId: input.id, userId: ctx.session.user.id })) {
         throw new Error("Player not in round");
       }
       // player must have a hand
@@ -714,7 +674,6 @@ export const gameRouter = createTRPCRouter({
               status: "active",
             },
             include: {
-              players: true,
               bets: true,
               hands: {
                 include: {
@@ -736,7 +695,7 @@ export const gameRouter = createTRPCRouter({
       }
 
       // player must be in the round
-      if (!round.players.some((player) => player.id === ctx.session.user.id)) {
+      if (!await playerHasBetInActiveRoundOfGame({ ctx, gameId: input.id, userId: ctx.session.user.id })) {
         throw new Error("Player not in round");
       }
       // player must have a hand
@@ -812,7 +771,6 @@ export const gameRouter = createTRPCRouter({
               status: "active",
             },
             include: {
-              players: true,
               bets: true,
               hands: {
                 include: {
@@ -831,7 +789,7 @@ export const gameRouter = createTRPCRouter({
         throw new Error("No active round");
       }
       // player must be in the round
-      if (!round.players.some((player) => player.id === ctx.session.user.id)) {
+      if (!await playerHasBetInActiveRoundOfGame({ ctx, gameId: input.id, userId: ctx.session.user.id })) {
         throw new Error("Player not in round");
       }
       // player must have a hand
@@ -878,8 +836,11 @@ async function getGame({ input, ctx }: { input: { id: string }, ctx: { db: Prism
       },
       rounds: {
         include: {
-          players: true,
-          bets: true,
+          bets: {
+            include: {
+              player: true,
+            }
+          },
           hands: {
             include: {
               cards: true,
@@ -903,4 +864,20 @@ async function getGame({ input, ctx }: { input: { id: string }, ctx: { db: Prism
       })),
     })),
   };
+}
+
+async function playerHasBetInActiveRoundOfGame ({ ctx, gameId, userId } : {
+  ctx: { db: PrismaClient },
+  gameId: string,
+  userId: string
+}) {
+  const game = await getGame({ input: { id: gameId }, ctx });
+  if (!game) {
+    return false;
+  }
+  const round = game.rounds.find((round) => round.status === "active");
+  if (!round) {
+    return false;
+  }
+  return round.bets.some((bet) => bet.player.userId === userId);
 }

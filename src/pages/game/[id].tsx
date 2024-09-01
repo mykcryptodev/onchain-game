@@ -68,24 +68,37 @@ export const Game: NextPage<Props> = ({ id }) => {
       <CreateRound id={id} onRoundCreated={refetchGame} />
       <PlaceBet id={id} onBetPlaced={refetchGame} />
       <Deal id={id} onDealt={refetchGame} />
+      {activeRound && (
+        <div>
+          {activeRound.id}
+        </div>
+      )}
       <div className="flex items-center gap-1">
         {Array.from({ length: 7 }).map((_, i) => (
           <div key={i}>
             {/* if there is a player in this position, show them */}
             {game.players.find((player) => player.position === i) && (
-              <div className="flex items-center gap-1">
-                <Avatar
-                  address={
-                    game.players.find((player) => player.position === i)!
-                      .user.address
-                  }
-                />
-                <Name
-                  address={
-                    game.players.find((player) => player.position === i)!
-                      .user.address
-                  }
-                />
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-1">
+                  <Avatar
+                    address={
+                      game.players.find((player) => player.position === i)!
+                        .user.address
+                    }
+                  />
+                  <Name
+                    address={
+                      game.players.find((player) => player.position === i)!
+                        .user.address
+                    }
+                  />
+                </div>
+                {/* if there are bets for this player, show them */}
+                {activeRound?.bets.find((bet) => bet.playerId === game.players.find((player) => player.position === i)!.id) && (
+                  <div>
+                    {activeRound.bets.find((bet) => bet.playerId === game.players.find((player) => player.position === i)!.id)!.amount}
+                  </div>
+                )}
               </div>
             )}
             {/* if there is no player in this position, show a Join component */}
