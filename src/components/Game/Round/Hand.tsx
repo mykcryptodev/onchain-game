@@ -15,6 +15,7 @@ type Props = {
 export const HandComponent: FC<Props> = ({ hand, gameId, onAction }) => {
   const { data: session } = useSession();
   const { mutateAsync: hit } = api.game.hit.useMutation();
+  const { mutateAsync: stand } = api.game.stand.useMutation();
 
   const isPlayerHand = useMemo(() => {
     return session?.user?.id === hand?.playerId;
@@ -46,6 +47,14 @@ export const HandComponent: FC<Props> = ({ hand, gameId, onAction }) => {
               onAction("hit");
             }}>
               Hit
+          </button>
+          <button 
+            className="btn btn-ghost"
+            onClick={async () => {
+              await stand({ id: gameId });
+              onAction("stand");
+            }}>
+              Stand
           </button>
         </div>
       )}

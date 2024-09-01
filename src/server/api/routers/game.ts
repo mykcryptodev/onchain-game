@@ -571,4 +571,86 @@ export const gameRouter = createTRPCRouter({
       }
       return handWithCard;
     }),
+  stand: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: {
+          id: input.id,
+        },
+        include: {
+          rounds: {
+            where: {
+              status: "active",
+            },
+            include: {
+              players: true,
+              bets: true,
+              hands: {
+                include: {
+                  cards: true,
+                },
+              },
+            }
+          },
+        }
+      });
+      if (!game) {
+        throw new Error("Game not found");
+      }
+      if (game.rounds.length < 1) {
+        throw new Error("No active round");
+      }
+      // round is the first active round
+      const round = game.rounds.find((round) => round.status === "active");
+      if (!round) {
+        throw new Error("No active round");
+      }
+      // player must be in the round
+      if (!round.players.some((player) => player.id === ctx.session.user.id)) {
+        throw new Error("Player not in round");
+      }
+      // player must have a hand
+      const hand = round.hands.find((hand) => hand.playerId === ctx.session.user.id);
+      if (!hand) {
+        throw new Error("Player has no hand");
+      }
+      // hand must be active
+      if (hand.status !== "active") {
+        throw new Error("Hand not active");
+      }
+      // make the hand stand
+      await ctx.db.hand.update({
+        where: {
+          id: hand.id,
+        },
+        data: {
+          status: "standing",
+        },
+      });
+      // make the next hand active
+      const nextHand = round.hands.find((hand) => hand.status === "pending");
+      if (!nextHand) {
+        // if there is no next hand, end the round
+        return await ctx.db.round.update({
+          where: {
+            id: round.id,
+          },
+          data: {
+            status: "ended",
+          },
+        });
+      }
+      // make the next hand active
+      return await ctx.db.hand.update({
+        where: {
+          id: nextHand.id,
+        },
+        data: {
+          status: "active",
+        },
+      });
+    }),
 });
