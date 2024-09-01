@@ -471,7 +471,11 @@ export const gameRouter = createTRPCRouter({
               status: "active",
             },
             include: {
-              bets: true,
+              bets: {
+                include: {
+                  player: true,
+                }
+              },
               hands: {
                 include: {
                   cards: true,
@@ -497,8 +501,11 @@ export const gameRouter = createTRPCRouter({
         throw new Error("Player not in round");
       }
       const userPlayer = game.players.find((player) => player.userId === ctx.session.user.id);
+      if (!userPlayer) {
+        throw new Error("Player not found in game");
+      }
       // player must have a hand
-      const hand = round.hands.find((hand) => hand.playerId === userPlayer?.id);
+      const hand = round.hands.find((hand) => hand.playerId === userPlayer.id);
       if (!hand) {
         throw new Error("Player has no hand");
       }
@@ -562,8 +569,33 @@ export const gameRouter = createTRPCRouter({
             status: "busted",
           },
         });
-        // make the next hand active
-        const nextHand = round.hands.find((hand) => hand.status === "pending");
+        // find the player in the game with the next position and a bet
+        // the next position may be empty so we need to loop through the players
+        // sort the players in the round bets by position
+        const sortedPlayers = round.bets.sort((a, b) => a.player.position - b.player.position);
+        const currentPlayer = sortedPlayers.findIndex((bet) => bet.playerId === userPlayer.id);
+        const nextPlayer = sortedPlayers[currentPlayer + 1];
+
+        console.log("sortedPlayers:", JSON.stringify(sortedPlayers, null, 2));
+        console.log("Next player:", nextPlayer);
+
+        if (!nextPlayer) {
+          // if there is no next player, end the round
+          const updatedRound = await ctx.db.round.update({
+            where: {
+              id: round.id,
+            },
+            data: {
+              status: "ended",
+            },
+          });
+          ee.emit(`updateGame`, input.id);
+          return updatedRound;
+        }
+
+        // find the next player's hand
+        const nextHand = round.hands.find((hand) => hand.playerId === nextPlayer.playerId);
+
         if (!nextHand) {
           // if there is no next hand, end the round
           return await ctx.db.round.update({
