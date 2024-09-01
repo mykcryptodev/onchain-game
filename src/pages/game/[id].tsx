@@ -1,7 +1,6 @@
 import { Avatar, Name } from "@coinbase/onchainkit/identity";
 import { type NextPage } from "next";
 import { type GetServerSideProps } from "next";
-import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { useMemo } from "react";
 
@@ -9,6 +8,8 @@ import Join from "~/components/Game/Join";
 import Leave from "~/components/Game/Leave";
 import CreateRound from "~/components/Game/Round/Create";
 import { Deal } from "~/components/Game/Round/Deal";
+import DealerPlay from "~/components/Game/Round/DealerPlay";
+import EndRound from "~/components/Game/Round/End";
 import { HandComponent } from "~/components/Game/Round/Hand";
 import PlaceBet from "~/components/Game/Round/PlaceBet";
 import { api } from "~/utils/api";
@@ -34,6 +35,8 @@ export const Game: NextPage<Props> = ({ id }) => {
   const activeRound = useMemo(() => {
     return game?.rounds.find((round) => round.status === "active");
   }, [game]);
+
+  console.log('everyone done', activeRound?.hands.every(hand => hand.status === 'standing' || hand.status === 'busted'))
   
   if (!game) return null;
   return (
@@ -69,6 +72,22 @@ export const Game: NextPage<Props> = ({ id }) => {
             )}
           </div>
         ))}
+        {activeRound?.hands.find(hand => {
+          const dealer = game.players.find(player => player.isDealer);
+          if (!dealer) return false;
+          return hand.playerId === dealer.id && hand.status === 'active';
+        }) && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-1">
+              <DealerPlay gameId={id} onDealerPlayed={refetchGame} />
+            </div>
+          </div>
+        )}
+        {/* if all hands are standing or busted show an EndRound component */}
+        {activeRound?.hands.every(hand => hand.status === 'standing' || hand.status === 'busted') && 
+         activeRound?.hands.length > 1 && (
+          <EndRound gameId={id} onRoundEnded={refetchGame} />
+        )}
       </div>
     </div>
   );

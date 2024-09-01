@@ -653,4 +653,163 @@ export const gameRouter = createTRPCRouter({
         },
       });
     }),
+  dealerPlay: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: {
+          id: input.id,
+        },
+        include: {
+          rounds: {
+            where: {
+              status: "active",
+            },
+            include: {
+              players: true,
+              bets: true,
+              hands: {
+                include: {
+                  cards: true,
+                },
+              },
+            }
+          },
+        }
+      });
+
+      if (!game) {
+        throw new Error("Game not found");
+      }
+
+      const round = game.rounds.find((round) => round.status === "active");
+      if (!round) {
+        throw new Error("No active round");
+      }
+
+      // player must be in the round
+      if (!round.players.some((player) => player.id === ctx.session.user.id)) {
+        throw new Error("Player not in round");
+      }
+      // player must have a hand
+      const hand = round.hands.find((hand) => hand.playerId === ctx.session.user.id);
+      if (!hand) {
+        throw new Error("Player has no hand");
+      }
+
+      // Find the dealer's hand
+      const dealerHand = round.hands.find(async (hand) => hand.playerId === (await ctx.db.user.findFirst({ where: { isDealer: true } }))?.id);
+      if (!dealerHand) {
+        throw new Error("Dealer hand not found");
+      }
+
+      // Play the dealer's hand
+      while (dealerHand.cards.reduce((sum, card) => sum + getCardValue(card.value), 0) < 17) {
+        const dealRes = await fetch(`https://www.deckofcardsapi.com/api/deck/${game.deckId}/draw/?count=1`);
+        const dealData = await dealRes.json() as DealData;
+        const card = dealData.cards[0];
+        if (!card) {
+          throw new Error("No card drawn");
+        }
+        await ctx.db.card.create({
+          data: {
+            handId: dealerHand.id,
+            code: card.code,
+            image: card.image,
+            value: card.value,
+            suit: card.suit,
+            isVisible: true,
+          },
+        });
+      }
+
+      // make all of the dealer's cards visible
+      await Promise.all(dealerHand.cards.map(async (card) => {
+        await ctx.db.card.update({
+          where: {
+            id: card.id,
+          },
+          data: {
+            isVisible: true,
+          },
+        });
+      }));
+
+      // Update the dealer's hand status
+      const handValue = dealerHand.cards.reduce((sum, card) => sum + getCardValue(card.value), 0);
+      const updatedStatus = handValue > 21 ? "busted" : "standing";
+      return await ctx.db.hand.update({
+        where: {
+          id: dealerHand.id,
+        },
+        data: {
+          status: updatedStatus,
+        },
+      });
+    }),
+  endRound: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: {
+          id: input.id,
+        },
+        include: {
+          rounds: {
+            where: {
+              status: "active",
+            },
+            include: {
+              players: true,
+              bets: true,
+              hands: {
+                include: {
+                  cards: true,
+                },
+              },
+            }
+          },
+        }
+      });
+      if (!game) {
+        throw new Error("Game not found");
+      }
+      const round = game.rounds.find((round) => round.status === "active");
+      if (!round) {
+        throw new Error("No active round");
+      }
+      // player must be in the round
+      if (!round.players.some((player) => player.id === ctx.session.user.id)) {
+        throw new Error("Player not in round");
+      }
+      // player must have a hand
+      const hand = round.hands.find((hand) => hand.playerId === ctx.session.user.id);
+      if (!hand) {
+        throw new Error("Player has no hand");
+      }
+      // all of the hands must be standing or busted
+      if (round.hands.some((hand) => hand.status === "active")) {
+        throw new Error("Not all hands are standing or busted");
+      }
+      // end the round
+      return await ctx.db.round.update({
+        where: {
+          id: round.id,
+        },
+        data: {
+          status: "ended",
+        },
+      });
+    }),
 });
+
+// Helper function to get the numeric value of a card
+function getCardValue(value: string): number {
+  if (value === 'A') return 11; // Treat Aces as 11 initially
+  if (['KING', 'QUEEN', 'JACK'].includes(value)) return 10; // Face cards are 10
+  return parseInt(value) || 0; // Other cards use their numeric value, or 0 if not a number
+}
