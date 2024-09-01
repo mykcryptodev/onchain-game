@@ -1,7 +1,8 @@
+import { zeroAddress } from "viem";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
-import { DealData, type Card, type DeckData, type Player } from "~/types/deck";
+import { type Card, type DealData, type DeckData, type Player } from "~/types/deck";
 
 const cardFids = {
   'A': 99, // jesse pollak
@@ -58,6 +59,21 @@ export const gameRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const deckRes = await fetch(`https://www.deckofcardsapi.com/api/deck/new/shuffle/?deck_count=${NUM_DECKS}`);
       const deckData = await deckRes.json() as DeckData;
+
+      // find the dealer user and add them to the game
+      let dealer = await ctx.db.user.findFirst({
+        where: {
+          isDealer: true,
+        },
+      });
+      if (!dealer) {
+        dealer = await ctx.db.user.create({
+          data: {
+            isDealer: true,
+            address: zeroAddress
+          },
+        });
+      }
       
       // create a game
       return await ctx.db.game.create({
@@ -66,9 +82,10 @@ export const gameRouter = createTRPCRouter({
           deckId: deckData.deck_id,
           createdById: ctx.session.user.id,
           players: {
-            connect: {
-              id: ctx.session.user.id,
-            },
+            connect: [
+              { id: ctx.session.user.id },
+              { id: dealer.id },
+            ],
           },
         },
       });
@@ -83,11 +100,7 @@ export const gameRouter = createTRPCRouter({
           id: input.id,
         },
         include: {
-          players: {
-            include: {
-              hand: true,
-            },
-          },
+          players: true,
           rounds: {
             include: {
               players: true,
@@ -309,31 +322,72 @@ export const gameRouter = createTRPCRouter({
         throw new Error("No bets placed");
       }
 
-      // deal cards
-      const numPlayersPlusDealer = round.bets.length + 1; // dealer is included
-      const numCardsDrawn = numPlayersPlusDealer * 2;
-      const dealRes = await fetch(`https://www.deckofcardsapi.com/api/deck/${game.deckId}/draw/?count=${numCardsDrawn}`);
-      const dealData = await dealRes.json() as DealData;
-
-      // find or create a user for the dealer
-      let dealer = await ctx.db.user.findFirst({
+      // get the dealer
+      const dealer = await ctx.db.user.findFirstOrThrow({
         where: {
           isDealer: true
         },
       });
-      if (!dealer) {
-        // create the dealer
-        dealer = await ctx.db.user.create({
-          data: {
-            isDealer: true,
+      await Promise.all([
+        // add the dealer to the round
+        ctx.db.round.update({
+          where: {
+            id: round.id,
           },
-        });
+          data: {
+            players: {
+              connect: {
+                id: dealer.id,
+              },
+            },
+          },
+        }),
+        // add a bet of zero for the dealer
+        ctx.db.bet.create({
+          data: {
+            playerId: dealer.id,
+            roundId: round.id,
+            amount: 0,
+          },
+        }),
+      ])
+
+      // refetch the game now that the dealer is in the round
+      const gameWithDealer = await ctx.db.game.findUnique({
+        where: {
+          id: input.id,
+        },
+        include: {
+          rounds: {
+            where: {
+              status: "active",
+            },
+            include: {
+              players: true,
+              bets: true,
+            }
+          },
+        }
+      });
+      if (!gameWithDealer) {
+        throw new Error("Game not found with dealer");
       }
+      const roundWithDealer = gameWithDealer.rounds.find((round) => round.status === "active");
+      if (!roundWithDealer) {
+        throw new Error("No active round with dealer");
+      }
+
+      // deal cards
+      const numPlayers = roundWithDealer.bets.length; // dealer is included
+      const numCardsDrawn = numPlayers * 2;
+      const dealRes = await fetch(`https://www.deckofcardsapi.com/api/deck/${game.deckId}/draw/?count=${numCardsDrawn}`);
+      const dealData = await dealRes.json() as DealData;
 
       // give each player their hand
       const playerHands = dealData.cards.reduce((acc, card, i) => {
-        const playerIndex = i % numPlayersPlusDealer;
-        const playerId = round.bets[playerIndex]?.playerId ?? ctx.session.user.id;
+        const playerIndex = i % numPlayers;
+        const playerId = roundWithDealer.bets[playerIndex]?.playerId ?? ctx.session.user.id;
+
         if (!acc[playerId]) {
           acc[playerId] = [];
         }
@@ -341,26 +395,13 @@ export const gameRouter = createTRPCRouter({
         return acc;
       }, {} as Record<string, Card[]>);
 
-      await ctx.db.round.update({
-        where: {
-          id: round.id,
-        },
-        data: {
-          players: {
-            connect: {
-              id: dealer.id,
-            },
-          },
-        },
-      });
-
       // update the player hands
       await Promise.all(Object.entries(playerHands).map(async ([playerId, hand], index) => {
         await ctx.db.hand.create({
           data: {
             playerId,
-            roundId: round.id,
-            gameId: game.id,
+            roundId: roundWithDealer.id,
+            gameId: gameWithDealer.id,
             status: index === 0 ? "active" : "pending",
             cards: {
               create: hand.map((card) => ({
@@ -378,7 +419,7 @@ export const gameRouter = createTRPCRouter({
       // finalize the round
       return await ctx.db.round.update({
         where: {
-          id: round.id,
+          id: roundWithDealer.id,
         },
         data: {
           betsFinal: true,
