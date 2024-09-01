@@ -1,8 +1,9 @@
+import { type Card } from "@prisma/client";
 import { zeroAddress } from "viem";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
-import { type Card, type DealData, type DeckData, type Player } from "~/types/deck";
+import { type DealData, type DeckCard, type DeckData } from "~/types/deck";
 
 const cardFids = {
   'A': 99, // jesse pollak
@@ -25,6 +26,7 @@ const cardValues = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3',
 type CardValue = typeof cardValues[number];
 
 const getCardImage = (card: Card) => {
+  if (!card.isVisible) return '/images/farcard.png';
   let cardValue = card.code.slice(0, -1);
   if (cardValue === '0') {
     cardValue = '10' as CardValue;
@@ -34,20 +36,21 @@ const getCardImage = (card: Card) => {
   return `https://far.cards/api/deck/${suitLetter}/${cardValue}/${fid}`;
 }
 
-const transformPlayerHand = (player: Player) => ({
-  ...player,
-  hand: player.hand.map((card) => ({
+const transformCard = (card: Card): Card => {
+  if (!card.isVisible) {
+    return {
+      ...card,
+      suit: 'XX',
+      value: 'XX',
+      code: 'XX',
+      image: getCardImage(card),
+    };
+  }
+  return {
     ...card,
-    code: card.isVisible ? card.code : "XX",
-    image: card.isVisible ? getCardImage(card) : "https://www.deckofcardsapi.com/static/img/back.png",
-    images: {
-      svg: card.isVisible ? card.images.svg : "https://www.deckofcardsapi.com/static/img/back.png",
-      png: card.isVisible ? card.images.png : "https://www.deckofcardsapi.com/static/img/back.png",
-    },
-    suit: card.isVisible ? card.suit : "XX",
-    value: card.isVisible ? card.value : "XX",
-  })),
-});
+    image: getCardImage(card),
+  };
+};
 
 const NUM_DECKS = 6;
 
@@ -117,7 +120,17 @@ export const gameRouter = createTRPCRouter({
       if (!game) {
         throw new Error("Game not found");
       }
-      return game;
+      // before you return the game, hide cards that are not visible
+      return {
+        ...game,
+        rounds: game.rounds.map((round) => ({
+          ...round,
+          hands: round.hands.map((hand) => ({
+            ...hand,
+            cards: hand.cards.map((card) => transformCard(card)),
+          })),
+        })),
+      };
     }),
   join: protectedProcedure
     .input(z.object({
@@ -393,10 +406,11 @@ export const gameRouter = createTRPCRouter({
         }
         acc[playerId].push(card);
         return acc;
-      }, {} as Record<string, Card[]>);
+      }, {} as Record<string, DeckCard[]>);
 
       // update the player hands
       await Promise.all(Object.entries(playerHands).map(async ([playerId, hand], index) => {
+        const isDealer = playerId === dealer.id;
         await ctx.db.hand.create({
           data: {
             playerId,
@@ -404,12 +418,12 @@ export const gameRouter = createTRPCRouter({
             gameId: gameWithDealer.id,
             status: index === 0 ? "active" : "pending",
             cards: {
-              create: hand.map((card) => ({
+              create: hand.map((card, cardIndex) => ({
                 code: card.code,
                 image: card.image,
                 value: card.value,
                 suit: card.suit,
-                isVisible: true,
+                isVisible: isDealer && cardIndex === 0 ? false : true,
               })),
             },
           },

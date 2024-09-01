@@ -2,6 +2,7 @@ import { Avatar, Name } from "@coinbase/onchainkit/identity";
 import { type NextPage } from "next";
 import { type GetServerSideProps } from "next";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { useMemo } from "react";
 
 import Join from "~/components/Game/Join";
@@ -55,9 +56,17 @@ export const Game: NextPage<Props> = ({ id }) => {
               <Name address={player.address} />
             </div>
             {activeRound?.hands.find((hand) => hand.playerId === player.id) && (
-              <div>
+              <div className="flex items-center gap-1">
                 {activeRound.hands.find((hand) => hand.playerId === player.id)?.cards.map((card) => (
-                  <div key={card.id}>{card.code}</div>
+                  <div key={card.id}>
+                    <Image
+                      src={card.image}
+                      alt={card.code}
+                      width={100}
+                      height={150}
+                    />
+                    {card.code}
+                  </div>
                 ))}
               </div>
             )}

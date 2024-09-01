@@ -1,4 +1,4 @@
-type Card = {
+type DeckCard = {
   code: string;
   image: string;
   images: {
@@ -13,7 +13,7 @@ type Card = {
 export type DealData = {
   success: boolean;
   deck_id: string;
-  cards: Card[];
+  cards: DeckCard[];
   remaining: number;
 };
 
@@ -26,7 +26,7 @@ export type DeckData = {
 
 export type Player = {
   name: string;
-  hand: Card[];
+  hand: DeckCard[];
   isDealer: boolean;
   total: number;
   isStanding: boolean;
