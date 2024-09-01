@@ -1,4 +1,4 @@
-import { type Card,type Game,type PrismaClient } from "@prisma/client";
+import { type Card,type PrismaClient } from "@prisma/client";
 import { tracked } from "@trpc/server";
 import EventEmitter, { on } from "events";
 import { zeroAddress } from "viem";
@@ -147,7 +147,7 @@ export const gameRouter = createTRPCRouter({
       if (game.players.some((player) => player.id === ctx.session.user.id)) {
         throw new Error("Already joined game");
       }
-      return await ctx.db.game.update({
+      const joined = await ctx.db.game.update({
         where: {
           id: input.id,
         },
@@ -159,6 +159,8 @@ export const gameRouter = createTRPCRouter({
           },
         },
       });
+      ee.emit(`updateGame`, input.id);
+      return joined;
     }),
   leave: protectedProcedure
     .input(z.object({
@@ -179,7 +181,7 @@ export const gameRouter = createTRPCRouter({
       if (!game.players.some((player) => player.id === ctx.session.user.id)) {
         throw new Error("Not in game");
       }
-      return await ctx.db.game.update({
+      const left = await ctx.db.game.update({
         where: {
           id: input.id,
         },
@@ -191,6 +193,8 @@ export const gameRouter = createTRPCRouter({
           },
         },
       });
+      ee.emit(`updateGame`, input.id);
+      return left;
     }),
   createRound: protectedProcedure
     .input(z.object({
@@ -223,6 +227,7 @@ export const gameRouter = createTRPCRouter({
           currentBetIndex: 0,
         },
       });
+      ee.emit(`updateGame`, input.id);
       return round;
     }),
   placeBet: protectedProcedure
@@ -429,7 +434,7 @@ export const gameRouter = createTRPCRouter({
       }));
 
       // finalize the round
-      return await ctx.db.round.update({
+      const finalizedRound = await ctx.db.round.update({
         where: {
           id: roundWithDealer.id,
         },
@@ -437,6 +442,8 @@ export const gameRouter = createTRPCRouter({
           betsFinal: true,
         },
       });
+      ee.emit(`updateGame`, input.id);
+      return finalizedRound;
     }),
   hit: protectedProcedure
     .input(z.object({
@@ -567,6 +574,7 @@ export const gameRouter = createTRPCRouter({
           },
         });
       }
+      ee.emit(`updateGame`, input.id);
       return handWithCard;
     }),
   stand: protectedProcedure
@@ -642,7 +650,7 @@ export const gameRouter = createTRPCRouter({
         });
       }
       // make the next hand active
-      return await ctx.db.hand.update({
+      const updatedHand = await ctx.db.hand.update({
         where: {
           id: nextHand.id,
         },
@@ -650,6 +658,8 @@ export const gameRouter = createTRPCRouter({
           status: "active",
         },
       });
+      ee.emit(`updateGame`, input.id);
+      return updatedHand;
     }),
   dealerPlay: protectedProcedure
     .input(z.object({
@@ -738,7 +748,7 @@ export const gameRouter = createTRPCRouter({
       // Update the dealer's hand status
       const handValue = dealerHand.cards.reduce((sum, card) => sum + getCardValue(card.value), 0);
       const updatedStatus = handValue > 21 ? "busted" : "standing";
-      return await ctx.db.hand.update({
+      const updatedHand = await ctx.db.hand.update({
         where: {
           id: dealerHand.id,
         },
@@ -746,6 +756,8 @@ export const gameRouter = createTRPCRouter({
           status: updatedStatus,
         },
       });
+      ee.emit(`updateGame`, input.id);
+      return updatedHand;
     }),
   endRound: protectedProcedure
     .input(z.object({
@@ -794,7 +806,7 @@ export const gameRouter = createTRPCRouter({
         throw new Error("Not all hands are standing or busted");
       }
       // end the round
-      return await ctx.db.round.update({
+      const endedRound = await ctx.db.round.update({
         where: {
           id: round.id,
         },
@@ -802,6 +814,8 @@ export const gameRouter = createTRPCRouter({
           status: "ended",
         },
       });
+      ee.emit(`updateGame`, input.id);
+      return endedRound;
     }),
 });
 
