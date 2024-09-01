@@ -54,9 +54,7 @@ model User {
 
     gamesCreated Game[] @relation(name: "GameCreatedBy")
 
-    gamesPlayed Game[] @relation(name: "GamePlayers")
-
-    roundsPlayed Round[]
+    gamesPlayed Player[]
 
     bets     Bet[]
     hand     Hand[]
@@ -78,17 +76,28 @@ model Game {
     image       String?
     createdBy   User    @relation(fields: [createdById], references: [id], onDelete: Cascade, name: "GameCreatedBy")
     createdById String
-    players     User[]  @relation(name: "GamePlayers")
+    players     Player[]
     deckId      String
     rounds      Round[]
     hand        Hand[]
+}
+
+model Player {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  gameId    String
+  game      Game    @relation(fields: [gameId], references: [id])
+  position  Int
+  @@unique([gameId, position])
+  rounds Round[]
 }
 
 model Round {
     id              String   @id @default(cuid())
     gameId          String
     game            Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
-    players         User[]
+    players         Player[]
     createdAt       DateTime @default(now())
     updatedAt       DateTime @updatedAt
     betsFinal       Boolean  @default(false)

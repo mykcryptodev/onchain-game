@@ -89,9 +89,35 @@ export const gameRouter = createTRPCRouter({
           deckId: deckData.deck_id,
           createdById: ctx.session.user.id,
           players: {
-            connect: [
-              { id: ctx.session.user.id },
-              { id: dealer.id },
+            connectOrCreate: [
+              {
+                where: {
+                  id: ctx.session.user.id,
+                  position: 0,
+                },
+                create: {
+                  user: {
+                    connect: {
+                      id: ctx.session.user.id,
+                    },
+                  },
+                  position: 0,
+                },
+              },
+              {
+                where: {
+                  id: dealer.id,
+                  position: 6,
+                },
+                create: {
+                  user: {
+                    connect: {
+                      id: dealer.id,
+                    },
+                  },
+                  position: 6,
+                },
+              },
             ],
           },
         },
@@ -131,6 +157,7 @@ export const gameRouter = createTRPCRouter({
   join: protectedProcedure
     .input(z.object({
       id: z.string(),
+      position: z.number(),
     }))
     .mutation(async ({ ctx, input }) => {
       const game = await ctx.db.game.findUnique({
@@ -153,8 +180,20 @@ export const gameRouter = createTRPCRouter({
         },
         data: {
           players: {
-            connect: {
-              id: ctx.session.user.id,
+            connectOrCreate: {
+              create: {
+                user: {
+                  connect: {
+                    id: ctx.session.user.id,
+                  },
+                },
+                position: input.position,
+              },
+              where: {
+                id: ctx.session.user.id,
+                position: input.position,
+                gameId: input.id,
+              },
             },
           },
         },
@@ -178,8 +217,10 @@ export const gameRouter = createTRPCRouter({
       if (!game) {
         throw new Error("Game not found");
       }
-      if (!game.players.some((player) => player.id === ctx.session.user.id)) {
-        throw new Error("Not in game");
+      // find the player in the game with the user id for this session and disconnect them
+      const player = game.players.find((player) => player.id === ctx.session.user.id);
+      if (!player) {
+        throw new Error("Player not found in game");
       }
       const left = await ctx.db.game.update({
         where: {
@@ -188,7 +229,7 @@ export const gameRouter = createTRPCRouter({
         data: {
           players: {
             disconnect: {
-              id: ctx.session.user.id,
+              id: player.id,
             },
           },
         },
@@ -833,7 +874,11 @@ async function getGame({ input, ctx }: { input: { id: string }, ctx: { db: Prism
       id: input.id,
     },
     include: {
-      players: true,
+      players: {
+        include: {
+          user: true,
+        }
+      },
       rounds: {
         include: {
           players: true,

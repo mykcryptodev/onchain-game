@@ -61,22 +61,45 @@ export const Game: NextPage<Props> = ({ id }) => {
     <div className="flex flex-col gap-2">
       <div>{game.name}</div>
       <div className="w-fit">
-        {userIsPlayerInGame ? (
+        {userIsPlayerInGame && (
           <Leave id={id} onLeft={refetchGame} />
-        ) : (
-          <Join id={id} onJoined={refetchGame} />
         )}
       </div>
       <CreateRound id={id} onRoundCreated={refetchGame} />
       <PlaceBet id={id} onBetPlaced={refetchGame} />
       <Deal id={id} onDealt={refetchGame} />
+      <div className="flex items-center gap-1">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i}>
+            {/* if there is a player in this position, show them */}
+            {game.players.find((player) => player.position === i) && (
+              <div className="flex items-center gap-1">
+                <Avatar
+                  address={
+                    game.players.find((player) => player.position === i)!
+                      .user.address
+                  }
+                />
+                <Name
+                  address={
+                    game.players.find((player) => player.position === i)!
+                      .user.address
+                  }
+                />
+              </div>
+            )}
+            <Join
+              key={i}
+              id={id}
+              onJoined={refetchGame}
+              position={i}
+            />
+          </div>
+        ))}
+      </div>
       <div className="flex items-center gap-2">
         {game.players.map((player) => (
           <div key={player.id} className="flex flex-col gap-2">
-            <div className="flex items-center gap-1">
-              <Avatar address={player.address} />
-              <Name address={player.address} />
-            </div>
             {activeRound?.hands.find((hand) => hand.playerId === player.id) && (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-1">
@@ -91,7 +114,7 @@ export const Game: NextPage<Props> = ({ id }) => {
           </div>
         ))}
         {activeRound?.hands.find(hand => {
-          const dealer = game.players.find(player => player.isDealer);
+          const dealer = game.players.find(player => player.user.isDealer);
           if (!dealer) return false;
           return hand.playerId === dealer.id && hand.status === 'active';
         }) && (
