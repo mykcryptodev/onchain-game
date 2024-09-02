@@ -54,7 +54,61 @@ export const Game: NextPage<Props> = ({ id }) => {
     return game?.rounds.find((round) => round.status === "active");
   }, [game]);
 
-  console.log('everyone done', activeRound?.hands.every(hand => hand.status === 'standing' || hand.status === 'busted'))
+  const renderPlayerPosition = (position: number) => {
+    if (!game) return null;
+    return (
+      <div key={position} className="grid w-full justify-center">
+        {/* if there is a player in this position, show them */}
+        {game.players.find((player) => player.position === position) && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-1">
+              <Avatar
+                address={
+                  game.players.find((player) => player.position === position)!
+                    .user.address
+                }
+              />
+              <Name
+                address={
+                  game.players.find((player) => player.position === position)!
+                    .user.address
+                }
+              />
+            </div>
+            {/* if there are bets for this player, show them */}
+            {activeRound?.bets.find((bet) => bet.playerId === game.players.find((player) => player.position === position)!.id) && (
+              <div>
+                {activeRound.bets.find((bet) => bet.playerId === game.players.find((player) => player.position === position)!.id)!.amount}
+              </div>
+            )}
+          </div>
+        )}
+        {/* if there is no player in this position, show a Join component */}
+        {!game.players.find((player) => player.position === position) && (
+          <Join
+            id={id}
+            onJoined={refetchGame}
+            position={position}
+          />
+        )}
+        {/* if the player is in this position and is in the session, show a leave button */}
+        {game.players.find((player) => player.position === position && player.user.id === session?.user?.id) && (
+          <Leave id={id} onLeft={refetchGame} />
+        )}
+        {/* print the hand for the player in this position */}
+        {activeRound?.hands.find((hand) => hand.playerId === game.players.find((player) => player.position === position)?.id) && (
+          <div>
+            <HandComponent 
+              gameId={id}
+              players={game.players}
+              hand={activeRound.hands.find((hand) => hand.playerId === game.players.find((player) => player.position === position)!.id)}
+              onAction={() => refetchGame()}
+            />
+          </div>
+        )}
+      </div>
+    )
+  };
   
   if (!game) return null;
   return (
@@ -73,72 +127,48 @@ export const Game: NextPage<Props> = ({ id }) => {
           {activeRound.id}
         </div>
       )}
-      <div className="flex items-center gap-1">
-        {Array.from({ length: 7 }).map((_, i) => (
-          <div key={i}>
-            {/* if there is a player in this position, show them */}
-            {game.players.find((player) => player.position === i) && (
-              <div className="flex flex-col gap-2">
+      <div className="divider" />
+      {/* Horseshoe layout */}
+      <div className="grid grid-cols-5 grid-rows-1 gap-4">
+        {/* Dealer */}
+        <div className="col-start-1 col-span-5 place-content-center">
+          {renderPlayerPosition(6)}
+          {activeRound?.hands.find(hand => {
+              const dealer = game.players.find(player => player.user.isDealer);
+              if (!dealer) return false;
+              return hand.playerId === dealer.id && hand.status === 'active';
+            }) && (
+              <div className="flex w-full justify-center">
                 <div className="flex items-center gap-1">
-                  <Avatar
-                    address={
-                      game.players.find((player) => player.position === i)!
-                        .user.address
-                    }
-                  />
-                  <Name
-                    address={
-                      game.players.find((player) => player.position === i)!
-                        .user.address
-                    }
-                  />
+                  <DealerPlay gameId={id} onDealerPlayed={refetchGame} />
                 </div>
-                {/* if there are bets for this player, show them */}
-                {activeRound?.bets.find((bet) => bet.playerId === game.players.find((player) => player.position === i)!.id) && (
-                  <div>
-                    {activeRound.bets.find((bet) => bet.playerId === game.players.find((player) => player.position === i)!.id)!.amount}
-                  </div>
-                )}
               </div>
             )}
-            {/* if there is no player in this position, show a Join component */}
-            {!game.players.find((player) => player.position === i) && (
-              <Join
-                id={id}
-                onJoined={refetchGame}
-                position={i}
-              />
-            )}
-            {/* if the player is in this position and is in the session, show a leave button */}
-            {game.players.find((player) => player.position === i && player.user.id === session?.user?.id) && (
-              <Leave id={id} onLeft={refetchGame} />
-            )}
-            {/* print the hand for the player in this position */}
-            {activeRound?.hands.find((hand) => hand.playerId === game.players.find((player) => player.position === i)?.id) && (
-              <div>
-                <HandComponent 
-                  gameId={id}
-                  players={game.players}
-                  hand={activeRound.hands.find((hand) => hand.playerId === game.players.find((player) => player.position === i)!.id)}
-                  onAction={() => refetchGame()}
-                />
-              </div>
-            )}
-          </div>
-        ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-5 grid-rows-2 gap-4">
+        {/* Top row */}
+        <div className="col-start-1 row-start-1 place-content-end">
+          {renderPlayerPosition(0)}
+        </div>
+
+        {/* Middle row */}
+        <div className="col-start-2 row-start-2">
+          {renderPlayerPosition(1)}
+        </div>
+        <div className="col-start-3 row-start-2">
+          {renderPlayerPosition(2)}
+        </div>
+        <div className="col-start-4 row-start-2">
+          {renderPlayerPosition(3)}
+        </div>
+
+        {/* Bottom row */}
+        <div className="col-start-5 row-start-1 place-content-end">
+          {renderPlayerPosition(4)}
+        </div>
       </div>
       <div className="flex items-center gap-2">
-        {activeRound?.hands.find(hand => {
-          const dealer = game.players.find(player => player.user.isDealer);
-          if (!dealer) return false;
-          return hand.playerId === dealer.id && hand.status === 'active';
-        }) && (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-1">
-              <DealerPlay gameId={id} onDealerPlayed={refetchGame} />
-            </div>
-          </div>
-        )}
         {/* if all hands are standing or busted show an EndRound component */}
         {activeRound?.hands.every(hand => hand.status === 'standing' || hand.status === 'busted') && 
          activeRound?.hands.length > 1 && (
