@@ -24,6 +24,18 @@ export const HandComponent: FC<Props> = ({ hand, gameId, players, onAction }) =>
   }, [session?.user?.id, userPlayer?.userId]);
 
   if (!hand) return null;
+  const handValue = hand.cards.reduce((acc, card) => {
+    let cardValue = 0;
+    if (card.value === "ACE") {
+      cardValue = acc + 11 > 21 ? 1 : 11;
+    } else if (["JACK", "QUEEN", "KING"].includes(card.value)) {
+      cardValue = 10;
+    } else {
+      cardValue = parseInt(card.value);
+    }
+    return acc + cardValue;
+  }, 0);
+
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="flex gap-2">
@@ -60,6 +72,9 @@ export const HandComponent: FC<Props> = ({ hand, gameId, players, onAction }) =>
           </button>
         </div>
       )}
+      <div>
+        {!isNaN(handValue) && handValue}
+      </div>
     </div>
   );
 };

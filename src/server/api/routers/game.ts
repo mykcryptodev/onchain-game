@@ -605,7 +605,7 @@ export const gameRouter = createTRPCRouter({
 
         if (!nextHand) {
           // if there is no next hand, end the round
-          return await ctx.db.round.update({
+          const endedRound = await ctx.db.round.update({
             where: {
               id: round.id,
             },
@@ -613,9 +613,11 @@ export const gameRouter = createTRPCRouter({
               status: "ended",
             },
           });
+          ee.emit(`updateGame`, input.id);
+          return endedRound;
         }
         // make the next hand active
-        return await ctx.db.hand.update({
+        const updatedNextHand = await ctx.db.hand.update({
           where: {
             id: nextHand.id,
           },
@@ -623,6 +625,8 @@ export const gameRouter = createTRPCRouter({
             status: "active",
           },
         });
+        ee.emit(`updateGame`, input.id);
+        return updatedNextHand;
       }
       ee.emit(`updateGame`, input.id);
       return handWithCard;
