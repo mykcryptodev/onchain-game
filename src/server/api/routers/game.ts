@@ -583,9 +583,6 @@ export const gameRouter = createTRPCRouter({
         const currentPlayer = sortedPlayers.findIndex((bet) => bet.playerId === userPlayer.id);
         const nextPlayer = sortedPlayers[currentPlayer + 1];
 
-        console.log("sortedPlayers:", JSON.stringify(sortedPlayers, null, 2));
-        console.log("Next player:", nextPlayer);
-
         if (!nextPlayer) {
           // if there is no next player, end the round
           const updatedRound = await ctx.db.round.update({
@@ -705,9 +702,6 @@ export const gameRouter = createTRPCRouter({
       const currentPlayer = sortedPlayers.findIndex((bet) => bet.playerId === userPlayer.id);
       const nextPlayer = sortedPlayers[currentPlayer + 1];
 
-      console.log("sortedPlayers:", JSON.stringify(sortedPlayers, null, 2));
-      console.log("Next player:", nextPlayer);
-
       if (!nextPlayer) {
         // if there is no next player, end the round
         const updatedRound = await ctx.db.round.update({
@@ -804,7 +798,6 @@ export const gameRouter = createTRPCRouter({
 
       // Find the dealer's hand
       const dealerPlayer = game.players.find((player) => player.user.isDealer);
-      console.log(JSON.stringify(dealerPlayer, null, 2));
       if (!dealerPlayer) {
         throw new Error("Dealer not found");
       }
@@ -813,15 +806,39 @@ export const gameRouter = createTRPCRouter({
         throw new Error("Dealer hand not found");
       }
 
-      console.log('first time');
-      console.log({ dealerHand: JSON.stringify(dealerHand, null, 2) });
-      console.log('value', dealerHand.cards.reduce((sum, card) => sum + getCardValue(card.value), 0));
-      console.log('end of first time');
+      // if all other hands have busted, dealer stands
+      const allOtherHandsAreBusted = round.hands.filter((hand) => 
+        hand.playerId !== dealerPlayer.id
+      ).every((hand) =>
+        hand.status === "busted"
+      );
+      if (allOtherHandsAreBusted) {
+        // make all of the dealer's cards visible
+        await Promise.all(dealerHand.cards.map(async (card) => {
+          await ctx.db.card.update({
+            where: {
+              id: card.id,
+            },
+            data: {
+              isVisible: true,
+            },
+          });
+        }));
+        // stand
+        const updatedHand = await ctx.db.hand.update({
+          where: {
+            id: dealerHand.id,
+          },
+          data: {
+            status: "standing",
+          },
+        });
+        ee.emit(`updateGame`, input.id);
+        return updatedHand;
+      }
 
       // Play the dealer's hand
       while (dealerHand.cards.reduce((sum, card) => sum + getCardValue(card.value), 0) < 17) {
-        console.log({ dealerHand: JSON.stringify(dealerHand, null, 2) });
-        console.log('value', dealerHand.cards.reduce((sum, card) => sum + getCardValue(card.value), 0));
         const dealRes = await fetch(`https://www.deckofcardsapi.com/api/deck/${game.deckId}/draw/?count=1`);
         const dealData = await dealRes.json() as DealData;
         const card = dealData.cards[0];
@@ -855,8 +872,6 @@ export const gameRouter = createTRPCRouter({
         }
         dealerHand = updatedDealerHand;
       }
-      console.log('value', dealerHand.cards.reduce((sum, card) => sum + getCardValue(card.value), 0));
-
 
       // make all of the dealer's cards visible
       await Promise.all(dealerHand.cards.map(async (card) => {
