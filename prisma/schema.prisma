@@ -68,28 +68,30 @@ model VerificationToken {
 }
 
 model Game {
-    id          String  @id @default(cuid())
+    id          String    @id @default(cuid())
     name        String
     description String?
     image       String?
-    createdBy   User    @relation(fields: [createdById], references: [id], onDelete: Cascade, name: "GameCreatedBy")
+    createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Cascade, name: "GameCreatedBy")
     createdById String
     players     Player[]
     deckId      String
     rounds      Round[]
     hand        Hand[]
+    cardFids    CardFid[]
 }
 
 model Player {
-  id        String  @id @default(cuid())
-  userId    String
-  user      User    @relation(fields: [userId], references: [id])
-  gameId    String
-  game      Game    @relation(fields: [gameId], references: [id])
-  position  Int
-  @@unique([gameId, position])
-  bets Bet[]
-  hands Hand[]
+    id       String @id @default(cuid())
+    userId   String
+    user     User   @relation(fields: [userId], references: [id])
+    gameId   String
+    game     Game   @relation(fields: [gameId], references: [id])
+    position Int
+    bets     Bet[]
+    hands    Hand[]
+
+    @@unique([gameId, position])
 }
 
 model Round {
@@ -110,24 +112,25 @@ model Bet {
     roundId   String
     round     Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
     playerId  String
-    player    Player  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
     amount    Int
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    @@unique ([roundId, playerId])
+
+    @@unique([roundId, playerId])
 }
 
 model Hand {
     id        String   @id @default(cuid())
     playerId  String
-    player    Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
     gameId    String
     game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
     cards     Card[]
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     status    String
-    round     Round   @relation(fields: [roundId], references: [id])
+    round     Round    @relation(fields: [roundId], references: [id])
     roundId   String
 }
 
@@ -142,4 +145,16 @@ model Card {
     updatedAt DateTime @updatedAt
     hand      Hand?    @relation(fields: [handId], references: [id])
     handId    String?
+}
+
+model CardFid {
+    id        String   @id @default(cuid())
+    gameId    String
+    game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+    cardValue String
+    fid       Int
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([gameId, cardValue])
 }

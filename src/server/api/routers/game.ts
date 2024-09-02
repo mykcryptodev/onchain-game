@@ -1,58 +1,43 @@
-import { type Card,type PrismaClient } from "@prisma/client";
+import { type Card,type CardFid, type PrismaClient } from "@prisma/client";
 import { tracked } from "@trpc/server";
 import EventEmitter, { on } from "events";
 import { zeroAddress } from "viem";
 import { z } from "zod";
 
+import { type cardValues } from "~/constants/cards";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
 import { type DealData, type DeckCard, type DeckData } from "~/types/deck";
 
 const ee = new EventEmitter();
 
-const cardFids = {
-  'A': 99, // jesse pollak
-  'K': 8152, // undefined
-  'Q': 239, // ted
-  'J': 4085, // christopher
-  '10': 680, // woj.eth
-  '9': 576, // johnny mack nonlinear.eth
-  '8': 2433, // seneca
-  '7': 221578, // apex
-  '6': 7143, // six
-  '5': 7732, // aneri
-  '4': 3621, // horsefacts
-  '3': 3, // dwr.eth
-  '2': 1317, // 0xdesigner
-  '1': 3642, // toady hawk
-}
-
-const cardValues = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2', '1'] as const;
 type CardValue = typeof cardValues[number];
-
-const getCardImage = (card: Card) => {
+const getCardImage = (card: Card, cardFids: CardFid[]) => {
+  const defaultCardFids = getDefaultCardFids();
   if (!card.isVisible) return '/images/farcard.png';
   let cardValue = card.code.slice(0, -1);
   if (cardValue === '0') {
     cardValue = '10' as CardValue;
   }
   const suitLetter = card.code.slice(-1);
-  const fid = cardFids[cardValue as CardValue];
+  const customFid = cardFids.find((cardFid) => cardFid.cardValue === cardValue);
+  const defaultFid = defaultCardFids[cardValue as CardValue];
+  const fid = customFid?.fid ?? defaultFid;
   return `https://far.cards/api/deck/${suitLetter}/${cardValue}/${fid}`;
 }
 
-const transformCard = (card: Card): Card => {
+const transformCard = (card: Card, cardFids: CardFid[]): Card => {
   if (!card.isVisible) {
     return {
       ...card,
       suit: 'XX',
       value: 'XX',
       code: 'XX',
-      image: getCardImage(card),
+      image: getCardImage(card, cardFids),
     };
   }
   return {
     ...card,
-    image: getCardImage(card),
+    image: getCardImage(card, cardFids),
   };
 };
 
@@ -962,6 +947,64 @@ export const gameRouter = createTRPCRouter({
       ee.emit(`updateGame`, input.id);
       return endedRound;
     }),
+  setCustomCardFids: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+      cardFids: z.array(z.object({
+        cardValue: z.string(),
+        fid: z.number(),
+      })),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.db.game.findUnique({
+        where: {
+          id: input.id,
+        },
+      });
+      if (!game) {
+        throw new Error("Game not found");
+      }
+      // for each cardValue that is already in the game and passed in the input, update the fid
+      const cardFidsToUpdate = await ctx.db.cardFid.findMany({
+        where: {
+          gameId: input.id,
+          cardValue: {
+            in: input.cardFids.map((cardFid) => cardFid.cardValue),
+          },
+        },
+      });
+      const updatedCardFids = await Promise.all(cardFidsToUpdate.map(async (cardFid) => {
+        const newFid = input.cardFids.find((newCardFid) => newCardFid.cardValue === cardFid.cardValue);
+        if (!newFid) {
+          throw new Error(`No fid found for card value ${cardFid.cardValue}`);
+        }
+        await ctx.db.cardFid.update({
+          where: {
+            id: cardFid.id,
+          },
+          data: {
+            fid: newFid.fid,
+          },
+        });
+      }));
+      // for each cardValue that is not already in the game, create a new cardFid
+      const cardFidsToCreate = input.cardFids.filter((cardFid) => !cardFidsToUpdate.some((existingCardFid) => existingCardFid.cardValue === cardFid.cardValue));
+      const createdCardFids = await Promise.all(cardFidsToCreate.map(async (cardFid) => {
+        await ctx.db.cardFid.create({
+          data: {
+            gameId: input.id,
+            cardValue: cardFid.cardValue,
+            fid: cardFid.fid,
+          },
+        });
+      }));
+      ee.emit(`updateGame`, input.id);
+      return [...updatedCardFids, ...createdCardFids];
+    }),
+  getDefaultCardFids: publicProcedure
+    .query(async () => {
+      return getDefaultCardFids();
+    }),
 });
 
 // Helper function to get the numeric value of a card
@@ -997,6 +1040,7 @@ async function getGame({ input, ctx }: { input: { id: string }, ctx: { db: Prism
           },
         }
       },
+      cardFids: true,
     },
   });
   if (!game) {
@@ -1009,7 +1053,7 @@ async function getGame({ input, ctx }: { input: { id: string }, ctx: { db: Prism
       ...round,
       hands: round.hands.map((hand) => ({
         ...hand,
-        cards: hand.cards.map((card) => transformCard(card)),
+        cards: hand.cards.map((card) => transformCard(card, game.cardFids)),
       })),
     })),
   };
@@ -1029,4 +1073,24 @@ async function playerHasBetInActiveRoundOfGame ({ ctx, gameId, userId } : {
     return false;
   }
   return round.bets.some((bet) => bet.player.userId === userId);
+}
+
+function getDefaultCardFids() {
+  const defaultCardFids = {
+    'A': 99, // jesse pollak
+    'K': 8152, // undefined
+    'Q': 239, // ted
+    'J': 4085, // christopher
+    '10': 680, // woj.eth
+    '9': 576, // johnny mack nonlinear.eth
+    '8': 2433, // seneca
+    '7': 221578, // apex
+    '6': 7143, // six
+    '5': 7732, // aneri
+    '4': 3621, // horsefacts
+    '3': 3, // dwr.eth
+    '2': 1317, // 0xdesigner
+    '1': 3642, // toady hawk
+  };
+  return defaultCardFids;
 }

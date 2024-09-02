@@ -2,6 +2,7 @@ import { Avatar, Name } from "@coinbase/onchainkit/identity";
 import { type NextPage } from "next";
 import { type GetServerSideProps } from "next";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import Join from "~/components/Game/Join";
@@ -113,7 +114,12 @@ export const Game: NextPage<Props> = ({ id }) => {
   if (!game) return null;
   return (
     <div className="flex flex-col gap-2">
-      <div>{game.name}</div>
+      <div className="flex items-center justify-between w-full">
+        <div>{game.name}</div>
+        <Link href={`/game/${id}/settings`} className="btn btn-sm btn-ghost">
+          Settings
+        </Link>
+      </div>
       <div className="w-fit">
         {userIsPlayerInGame && (
           <Leave id={id} onLeft={refetchGame} />
