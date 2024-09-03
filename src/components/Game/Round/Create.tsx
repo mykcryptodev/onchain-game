@@ -7,7 +7,7 @@ type Props = {
   onRoundCreated: () => void;
 };
 export const CreateRound: FC<Props> = ({ id, onRoundCreated }) => {
-  const { mutateAsync: createRound } = api.game.createRound.useMutation({ id });
+  const { mutateAsync: createRound } = api.game.createRound.useMutation();
 
   return (
     <button
