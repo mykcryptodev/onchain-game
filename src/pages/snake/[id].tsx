@@ -1,5 +1,5 @@
 import { type GetServerSideProps, type NextPage } from 'next';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef,useState } from 'react';
 
 import { api } from '~/utils/api';
 
@@ -11,7 +11,6 @@ const INITIAL_FOOD = { x: 15, y: 15 };
 
 type Direction = typeof INITIAL_DIRECTION;
 type Food = typeof INITIAL_FOOD;
-
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const id = context.params?.id as string;
@@ -26,6 +25,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 interface Props {
   id: string;
 }
+
 const SnakeGame: NextPage<Props> = ({ id }) => {
   const { mutate: recordMove } = api.snake.recordMove.useMutation();
   const [snake, setSnake] = useState<typeof INITIAL_SNAKE>(INITIAL_SNAKE);
@@ -33,9 +33,16 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
   const [food, setFood] = useState<Food>(INITIAL_FOOD);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
+  const directionQueue = useRef<Direction[]>([]);
 
   const moveSnake = useCallback(() => {
     if (gameOver) return;
+
+    // Process the next direction from the queue
+    if (directionQueue.current.length > 0) {
+      const nextDirection = directionQueue.current.shift();
+      if (nextDirection) setDirection(nextDirection);
+    }
 
     const newSnake = [...snake];
     const head = { ...newSnake[0] } as typeof newSnake[0];
@@ -99,7 +106,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
 
     setSnake(newSnake);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snake, direction, food, gameOver]);
+  }, [snake, direction, food, gameOver, id, recordMove, score]);
 
   const generateFood = useCallback((snakeBody: typeof INITIAL_SNAKE) => {
     let newFood: Food;
@@ -112,7 +119,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
     return newFood;
   }, []);
 
-  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyPress = useCallback((e: KeyboardEvent) => {
     e.preventDefault();
     if (gameOver) return;
 
@@ -129,25 +136,30 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
         gridSize: GRID_SIZE,
       });
     }
-    switch (e.key) {
-      case 'ArrowUp':
-        setDirection(prev => prev.y !== 1 ? { x: 0, y: -1 } : prev);
-        handleRecordMove('up');
-        break;
-      case 'ArrowDown':
-        setDirection(prev => prev.y !== -1 ? { x: 0, y: 1 } : prev);
-        handleRecordMove('down');
-        break;
-      case 'ArrowLeft':
-        setDirection(prev => prev.x !== 1 ? { x: -1, y: 0 } : prev);
-        handleRecordMove('left');
-        break;
-      case 'ArrowRight':
-        setDirection(prev => prev.x !== -1 ? { x: 1, y: 0 } : prev);
-        handleRecordMove('right');
-        break;
+
+    const getNextDirection = (key: string): Direction | null => {
+      switch (key) {
+        case 'ArrowUp': return { x: 0, y: -1 };
+        case 'ArrowDown': return { x: 0, y: 1 };
+        case 'ArrowLeft': return { x: -1, y: 0 };
+        case 'ArrowRight': return { x: 1, y: 0 };
+        default: return null;
+      }
+    };
+
+    const nextDirection = getNextDirection(e.key);
+    if (nextDirection) {
+      const currentDirection = directionQueue.current.length > 0 
+        ? directionQueue.current[directionQueue.current.length - 1] 
+        : direction;
+      
+      // Prevent 180-degree turns
+      if (nextDirection.x !== -currentDirection!.x || nextDirection.y !== -currentDirection!.y) {
+        directionQueue.current.push(nextDirection);
+        handleRecordMove(e.key.toLowerCase().replace('arrow', '') as 'up' | 'down' | 'left' | 'right');
+      }
     }
-  }, [gameOver, id, recordMove, score, snake]);
+  }, [gameOver, id, recordMove, score, snake, direction]);
 
   const resetGame = () => {
     setSnake(INITIAL_SNAKE);
@@ -155,6 +167,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
     setFood(INITIAL_FOOD);
     setGameOver(false);
     setScore(0);
+    directionQueue.current = [];
   };
 
   useEffect(() => {
@@ -163,12 +176,8 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
   }, [moveSnake]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      handleKeyPress(e as unknown as React.KeyboardEvent<HTMLDivElement>);
-    };
-  
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
   }, [handleKeyPress]);
 
   return (
