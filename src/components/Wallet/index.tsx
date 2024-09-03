@@ -17,10 +17,10 @@ import {
 } from '@coinbase/onchainkit/wallet';
 import { signOut, useSession } from 'next-auth/react';
 import { useEffect } from 'react';
-import { defineChain } from 'thirdweb';
-import { viemAdapter } from "thirdweb/adapters/viem";
-import { useSetActiveWallet } from 'thirdweb/react';
-import { createWalletAdapter } from 'thirdweb/wallets';
+// import { defineChain } from 'thirdweb';
+// import { viemAdapter } from "thirdweb/adapters/viem";
+// import { useSetActiveWallet } from 'thirdweb/react';
+// import { createWalletAdapter } from 'thirdweb/wallets';
 import { useAccount,useChainId,useDisconnect, useSwitchChain, useWalletClient } from "wagmi";
 import { type Chain } from "wagmi/chains";
 
@@ -36,7 +36,7 @@ export function Wallet() {
   const previousAddress = usePrevious(address);
   const { data: sessionData } = useSession();
 
-  const setActiveWallet = useSetActiveWallet();
+  // const setActiveWallet = useSetActiveWallet();
   const { data: walletClient } = useWalletClient();
   const { disconnectAsync } = useDisconnect();
   const { switchChainAsync } = useSwitchChain();
@@ -55,31 +55,31 @@ export function Wallet() {
     }
   }, [address, disconnectAsync, previousAddress, sessionData]);
 
-  useEffect(() => {
-    const setActive = async () => {
-      if (walletClient) {
-        // adapt the walletClient to a thirdweb account
-        const adaptedAccount = viemAdapter.walletClient.fromViem({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-          walletClient: walletClient as any, // accounts for wagmi/viem version mismatches
-        });
-        // create the thirdweb wallet with the adapted account
-        const thirdwebWallet = createWalletAdapter({
-          client: thirdwebClient,
-          adaptedAccount,
-          chain: defineChain(await walletClient.getChainId()),
-          onDisconnect: async () => {
-            await disconnectAsync();
-          },
-          switchChain: async (chain) => {
-            await switchChainAsync({ chainId: chain.id });
-          },
-        });
-        void setActiveWallet(thirdwebWallet);
-      }
-    };
-    void setActive();
-  }, [disconnectAsync, setActiveWallet, switchChainAsync, walletClient]);
+  // useEffect(() => {
+  //   const setActive = async () => {
+  //     if (walletClient) {
+  //       // adapt the walletClient to a thirdweb account
+  //       const adaptedAccount = viemAdapter.walletClient.fromViem({
+  //         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+  //         walletClient: walletClient as any, // accounts for wagmi/viem version mismatches
+  //       });
+  //       // create the thirdweb wallet with the adapted account
+  //       const thirdwebWallet = createWalletAdapter({
+  //         client: thirdwebClient,
+  //         adaptedAccount,
+  //         chain: defineChain(await walletClient.getChainId()),
+  //         onDisconnect: async () => {
+  //           await disconnectAsync();
+  //         },
+  //         switchChain: async (chain) => {
+  //           await switchChainAsync({ chainId: chain.id });
+  //         },
+  //       });
+  //       void setActiveWallet(thirdwebWallet);
+  //     }
+  //   };
+  //   void setActive();
+  // }, [disconnectAsync, setActiveWallet, switchChainAsync, walletClient]);
 
   return (
     <div className="flex gap-2 items-center">

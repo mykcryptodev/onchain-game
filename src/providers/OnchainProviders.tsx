@@ -11,7 +11,7 @@ import {
 } from '@rainbow-me/rainbowkit/wallets';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type FC, useEffect, useState } from 'react';
-import { ThirdwebProvider } from 'thirdweb/react';
+// import { ThirdwebProvider } from 'thirdweb/react';
 import { createConfig, http,WagmiProvider } from 'wagmi';
 
 import { APP_NAME, DEFAULT_CHAIN, EAS_SCHEMA_ID, SUPPORTED_CHAINS } from '~/constants';
@@ -79,9 +79,9 @@ const OnchainProviders: FC<Props> = ({ children }) => {
           schemaId={EAS_SCHEMA_ID}
         >
           <RainbowKitProvider modalSize="compact">
-            <ThirdwebProvider>
+            {/* <ThirdwebProvider> */}
               {children}
-            </ThirdwebProvider>
+            {/* </ThirdwebProvider> */}
           </RainbowKitProvider>
         </OnchainKitProvider>
       </QueryClientProvider>

@@ -1,12 +1,12 @@
 import { type FC } from "react";
-import { MediaRenderer, useChainMetadata } from "thirdweb/react";
+// import { MediaRenderer, useChainMetadata } from "thirdweb/react";
 import { type Chain } from "viem";
 
 import { Portal } from "~/components/utils/Portal";
-import { thirdwebClient } from "~/config/thirdweb";
+// import { thirdwebClient } from "~/config/thirdweb";
 import { SUPPORTED_CHAINS } from "~/constants";
 import { classNames } from "~/helpers/classNames";
-import { getThirdwebChain } from "~/helpers/getThirdwebChain";
+// import { getThirdwebChain } from "~/helpers/getThirdwebChain";
 
 type Props = {
   onChainSelected: (chain: Chain) => void;
@@ -23,20 +23,20 @@ export const ChainPicker: FC<Props> = ({ onChainSelected, selectedChain, id, cla
   }
 
   const ChainOption: FC<{ chain: Chain }> = ({ chain }) => {
-    const { data: chainMetadata} = useChainMetadata(getThirdwebChain(chain.id));
+    // const { data: chainMetadata} = useChainMetadata(getThirdwebChain(chain.id));
     return (
       <div key={chain.id}>
         <button
           onClick={() => handleSelectChain(chain)}
           className="btn w-full"
         >
-          <MediaRenderer
+          {/* <MediaRenderer
             src={chainMetadata?.icon?.url ?? ''}
             alt={chain.name}
             client={thirdwebClient}
             height={"24px"}
             width={"24px"}
-          />
+          /> */}
           <span>{chain.name}</span>
         </button>
       </div>
@@ -44,15 +44,16 @@ export const ChainPicker: FC<Props> = ({ onChainSelected, selectedChain, id, cla
   }
 
   const SelectedChain: FC<{ chain: Chain }> = ({ chain }) => {
-    const { data: chainMetadata } = useChainMetadata(getThirdwebChain(chain.id));
+    // const { data: chainMetadata } = useChainMetadata(getThirdwebChain(chain.id));
     return (
-      <MediaRenderer
-        src={chainMetadata?.icon?.url ?? ''}
-        alt={chain.name}
-        client={thirdwebClient}
-        height={"24px"}
-        width={"24px"}
-      />
+      <span>{chain.name}</span>
+      // <MediaRenderer
+      //   src={chainMetadata?.icon?.url ?? ''}
+      //   alt={chain.name}
+      //   client={thirdwebClient}
+      //   height={"24px"}
+      //   width={"24px"}
+      // />
     )
   }
 
