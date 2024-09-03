@@ -1,6 +1,7 @@
 import { type GetServerSideProps, type NextPage } from 'next';
 import React, { useCallback, useEffect, useRef,useState } from 'react';
 
+import CreateSnakeGame from '~/components/Snake/Create';
 import { api } from '~/utils/api';
 
 const GRID_SIZE = 20;
@@ -35,6 +36,15 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
   const [score, setScore] = useState<number>(0);
   const directionQueue = useRef<Direction[]>([]);
 
+  const resetGame = () => {
+    setSnake(INITIAL_SNAKE);
+    setDirection(INITIAL_DIRECTION);
+    setFood(INITIAL_FOOD);
+    setGameOver(false);
+    setScore(0);
+    directionQueue.current = [];
+  };
+  
   const moveSnake = useCallback(() => {
     if (gameOver) return;
 
@@ -161,15 +171,6 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
     }
   }, [gameOver, id, recordMove, score, snake, direction]);
 
-  const resetGame = () => {
-    setSnake(INITIAL_SNAKE);
-    setDirection(INITIAL_DIRECTION);
-    setFood(INITIAL_FOOD);
-    setGameOver(false);
-    setScore(0);
-    directionQueue.current = [];
-  };
-
   useEffect(() => {
     const gameLoop = setInterval(moveSnake, 100);
     return () => clearInterval(gameLoop);
@@ -212,12 +213,10 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
       {gameOver && (
         <div className="mt-4">
           <p className="text-2xl font-bold text-red-600">Game Over!</p>
-          <button
-            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            onClick={resetGame}
-          >
-            Play Again
-          </button>
+          <CreateSnakeGame 
+            btnLabel="Play Again"
+            onClick={() => void resetGame()}
+          />
         </div>
       )}
     </div>
