@@ -1,4 +1,3 @@
-import { xai } from "thirdweb/chains";
 import { isAddressEqual, zeroAddress } from "viem";
 import { z } from "zod";
 
@@ -7,15 +6,16 @@ import {
   protectedProcedure,
 } from "~/server/api/trpc";
 
-type Move = {
-  direction: "up" | "down" | "left" | "right";
+type Action = {
+  label: "up" | "down" | "left" | "right" | "eat";
   x: number;
   y: number;
   currentScore: number;
+  length: number;
 }
 
 type History = {
-  moves: Move[];
+  actions: Action[];
 }
 
 export const snakeRouter = createTRPCRouter({
@@ -24,7 +24,7 @@ export const snakeRouter = createTRPCRouter({
       return await ctx.db.snakeGame.create({
         data: {
           player: ctx.session.user.address ?? zeroAddress,
-          history: { moves: [] },
+          history: { actions: [] },
           score: 0,
         },
       });
@@ -32,11 +32,12 @@ export const snakeRouter = createTRPCRouter({
   recordMove: protectedProcedure
     .input(z.object({
       id: z.string(),
-      move: z.object({
-        direction: z.enum(["up", "down", "left", "right"]),
+      action: z.object({
+        label: z.enum(["up", "down", "left", "right", "eat"]),
         x: z.number(),
         y: z.number(),
         currentScore: z.number(),
+        length: z.number(),
       }),
     }))
     .mutation(async ({ ctx, input }) => {
@@ -53,7 +54,7 @@ export const snakeRouter = createTRPCRouter({
       const currentHistory = game.history as History;
 
       const newHistory = {
-        moves: [...currentHistory.moves, input.move]
+        actions: [...currentHistory.actions, input.action]
       };
 
       return await ctx.db.snakeGame.update({

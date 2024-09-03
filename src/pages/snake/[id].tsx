@@ -58,6 +58,16 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
 
     // Check if snake ate food
     if (head.x === food.x && head.y === food.y) {
+      recordMove({ 
+        id,
+        action: {
+          label: 'eat',
+          x: head.x,
+          y: head.y,
+          currentScore: score + 1,
+          length: snake.length + 1,
+        }
+      });
       setScore(prevScore => prevScore + 1);
       setFood(generateFood(newSnake));
     } else {
@@ -83,14 +93,15 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
     e.preventDefault();
     if (gameOver) return;
 
-    const handleRecordMove = (direction: 'up' | 'down' | 'left' | 'right') => {
+    const handleRecordMove = (label: 'up' | 'down' | 'left' | 'right' | 'eat') => {
       recordMove({ 
         id,
-        move: {
-          direction,
+        action: {
+          label,
           x: snake[0]?.x ?? 0,
           y: snake[0]?.y ?? 0,
           currentScore: score,
+          length: snake.length,
         }
       });
     }
