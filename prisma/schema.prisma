@@ -158,3 +158,10 @@ model CardFid {
 
     @@unique([gameId, cardValue])
 }
+
+model SnakeGame {
+    id      String @id @default(cuid())
+    history Json
+    score   Int
+    player  String
+}

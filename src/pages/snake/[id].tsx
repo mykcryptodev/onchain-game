@@ -1,4 +1,7 @@
+import { type GetServerSideProps, type NextPage } from 'next';
 import React, { useCallback, useEffect, useState } from 'react';
+
+import { api } from '~/utils/api';
 
 const GRID_SIZE = 20;
 const CELL_SIZE = 20;
@@ -9,12 +12,27 @@ const INITIAL_FOOD = { x: 15, y: 15 };
 type Direction = typeof INITIAL_DIRECTION;
 type Food = typeof INITIAL_FOOD;
 
-const SnakeGame = () => {
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const id = context.params?.id as string;
+
+  return {
+    props: {
+      id,
+    },
+  };
+};
+
+interface Props {
+  id: string;
+}
+const SnakeGame: NextPage<Props> = ({ id }) => {
+  const { mutate: recordMove } = api.snake.recordMove.useMutation();
   const [snake, setSnake] = useState<typeof INITIAL_SNAKE>(INITIAL_SNAKE);
   const [direction, setDirection] = useState<Direction>(INITIAL_DIRECTION);
   const [food, setFood] = useState<Food>(INITIAL_FOOD);
-  const [gameOver, setGameOver] = useState(false);
-  const [score, setScore] = useState(0);
+  const [gameOver, setGameOver] = useState<boolean>(false);
+  const [score, setScore] = useState<number>(0);
 
   const moveSnake = useCallback(() => {
     if (gameOver) return;
@@ -65,21 +83,36 @@ const SnakeGame = () => {
     e.preventDefault();
     if (gameOver) return;
 
+    const handleRecordMove = (direction: 'up' | 'down' | 'left' | 'right') => {
+      recordMove({ 
+        id,
+        move: {
+          direction,
+          x: snake[0]?.x ?? 0,
+          y: snake[0]?.y ?? 0,
+          currentScore: score,
+        }
+      });
+    }
     switch (e.key) {
       case 'ArrowUp':
         setDirection(prev => prev.y !== 1 ? { x: 0, y: -1 } : prev);
+        handleRecordMove('up');
         break;
       case 'ArrowDown':
         setDirection(prev => prev.y !== -1 ? { x: 0, y: 1 } : prev);
+        handleRecordMove('down');
         break;
       case 'ArrowLeft':
         setDirection(prev => prev.x !== 1 ? { x: -1, y: 0 } : prev);
+        handleRecordMove('left');
         break;
       case 'ArrowRight':
         setDirection(prev => prev.x !== -1 ? { x: 1, y: 0 } : prev);
+        handleRecordMove('right');
         break;
     }
-  }, [gameOver]);
+  }, [gameOver, id, recordMove, score, snake]);
 
   const resetGame = () => {
     setSnake(INITIAL_SNAKE);
