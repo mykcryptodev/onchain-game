@@ -45,12 +45,34 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
     // Check collision with walls
     if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
       setGameOver(true);
+      recordMove({
+        id,
+        action: {
+          label: 'died',
+          x: head.x,
+          y: head.y,
+          currentScore: score,
+          length: snake.length,
+        },
+        gridSize: GRID_SIZE,
+      });
       return;
     }
 
     // Check collision with self
     if (newSnake.slice(1).some(segment => segment.x === head.x && segment.y === head.y)) {
       setGameOver(true);
+      recordMove({
+        id,
+        action: {
+          label: 'died',
+          x: head.x,
+          y: head.y,
+          currentScore: score,
+          length: snake.length,
+        },
+        gridSize: GRID_SIZE,
+      });
       return;
     }
 
@@ -66,7 +88,8 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
           y: head.y,
           currentScore: score + 1,
           length: snake.length + 1,
-        }
+        },
+        gridSize: GRID_SIZE,
       });
       setScore(prevScore => prevScore + 1);
       setFood(generateFood(newSnake));
@@ -93,7 +116,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
     e.preventDefault();
     if (gameOver) return;
 
-    const handleRecordMove = (label: 'up' | 'down' | 'left' | 'right' | 'eat') => {
+    const handleRecordMove = (label: 'up' | 'down' | 'left' | 'right' | 'eat' | 'died') => {
       recordMove({ 
         id,
         action: {
@@ -102,7 +125,8 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
           y: snake[0]?.y ?? 0,
           currentScore: score,
           length: snake.length,
-        }
+        },
+        gridSize: GRID_SIZE,
       });
     }
     switch (e.key) {
