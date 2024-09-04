@@ -253,6 +253,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
             height: GRID_SIZE * CELL_SIZE,
           }}
         >
+          <code className="absolute text-xs -top-4">score: {score}</code>
           <div className="absolute inset-0 border-2 border-gray-300">
             {snake.map((segment, index) => (
               <div
@@ -278,21 +279,19 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
             />
           </div>
           {gameOver && (
-              <div className="flex h-full items-center w-full absolute">
-                <div className="flex flex-col items-center justify-center w-full gap-2">
-                  <p className="text-2xl font-bold text-red-600">Game Over!</p>
-                  <CreateSnakeGame
-                    btnLabel="Play Again"
-                    onClick={() => void resetGame()}
-                  />
-                  <SaveSnakeGame gameId={id} />
-                </div>
+            <div className="flex h-full items-center w-full absolute">
+              <div className="flex flex-col items-center justify-center w-full gap-2">
+                <p className="text-2xl font-bold text-red-600">Game Over!</p>
+                <CreateSnakeGame
+                  btnLabel="Play Again"
+                  onClick={() => void resetGame()}
+                />
+                <SaveSnakeGame gameId={id} />
               </div>
-            )}
+            </div>
+          )}
         </div>
       </GameBoyWrapper>
-
-      <div className="mt-4 text-xl">Score: {score}</div>
       <Portal>
         <input type="checkbox" id="base_color_modal" className="modal-toggle" />
           <div className="modal modal-bottom" role="dialog">
@@ -303,6 +302,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
                 &times;
               </label>
               <ChooseSnakeColors
+                selectedColor={snakeColor}
                 userColors={userColors}
                 isLoading={loadingUserColors}
                 snakeColorUpdater={setSnakeColor}
