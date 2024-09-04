@@ -13,13 +13,13 @@ type Props = {
 export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
   const { address } = useAccount();
   const { data: sessionData } = useSession();
-  const tabs = ['Scan', 'Save'] as readonly string[];
+  const tabs = ['Scan', 'Save Scan'] as readonly string[];
   const [activeTab, setActiveTab] = useState<string>(tabs[0]!);
   const { mutateAsync: saveGame, isPending } = api.snake.saveGame.useMutation();
 
   useEffect(() => {
     if (!address) return;
-    setActiveTab('Save');
+    setActiveTab('Save Scan');
   }, [address]);
 
   const handleSave = async () => {
@@ -58,9 +58,9 @@ export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
                   <Wallet btnLabel="Scan your face" />
                 </div>
               )}
-              {activeTab === 'Save' && (
+              {activeTab === 'Save Scan' && (
                 <div className="w-full justify-center flex">
-                  <MergeEthereumAccount btnLabel="Save game" />
+                  <MergeEthereumAccount btnLabel="Save Scan" />
                 </div>
               )}
             </div>
