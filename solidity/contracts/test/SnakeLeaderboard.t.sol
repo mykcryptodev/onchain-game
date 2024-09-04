@@ -9,10 +9,14 @@ contract SnakeGameTest is Test {
     address public owner;
     address public player1;
     address public player2;
+    uint256 public ownerPrivateKey;
 
     function setUp() public {
-        owner = address(this);
+        ownerPrivateKey = 0x1234; // Use a fixed private key for consistency
+        owner = vm.addr(ownerPrivateKey);
         game = new SnakeGame();
+        vm.prank(address(this));
+        game.transferOwnership(owner); // Transfer ownership to the generated owner address
         player1 = address(0x1);
         player2 = address(0x2);
     }
@@ -23,10 +27,12 @@ contract SnakeGameTest is Test {
         uint256 timestamp = block.timestamp;
 
         bytes32 messageHash = keccak256(abi.encodePacked(player1, score, ipfsCid, timestamp));
-        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(uint256(keccak256(abi.encodePacked("owner"))), ethSignedMessageHash);
+        bytes32 ethSignedMessageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
+        
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, ethSignedMessageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
 
+        vm.prank(owner);
         game.submitGameResult(player1, score, ipfsCid, timestamp, signature);
 
         SnakeGame.GameResult memory result = game.getPlayerBestScore(player1);
@@ -61,7 +67,7 @@ contract SnakeGameTest is Test {
             (uint8 v, bytes32 r, bytes32 s) = vm.sign(uint256(keccak256(abi.encodePacked("owner"))), ethSignedMessageHash);
             signatures[i] = abi.encodePacked(r, s, v);
         }
-
+        vm.prank(owner);
         game.batchSubmitGameResults(players, scores, ipfsCids, timestamps, signatures);
 
         SnakeGame.GameResult memory result1 = game.getPlayerBestScore(player1);
