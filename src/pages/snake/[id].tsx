@@ -6,7 +6,6 @@ import { useAccount } from "wagmi";
 import ChooseSnakeColors from "~/components/Snake/ChooseSnakeColors";
 import CreateSnakeGame from "~/components/Snake/Create";
 import SaveSnakeGame from "~/components/Snake/SaveGame";
-import GameBoyWrapper from "~/components/utils/GameBoyWrapper";
 import NokiaWrapper from "~/components/utils/NokiaWrapper";
 import { Portal } from "~/components/utils/Portal";
 import { api } from "~/utils/api";
