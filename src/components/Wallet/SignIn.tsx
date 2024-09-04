@@ -5,7 +5,10 @@ import { useAccount, useSignMessage } from 'wagmi';
 
 import { APP_NAME } from '~/constants';
 
-const SignInWithEthereum: FC = () => {
+type Props = {
+  btnLabel?: string;
+}
+const SignInWithEthereum: FC<Props> = ({ btnLabel }) => {
   const { data: sessionData } = useSession();
   const { signMessageAsync } = useSignMessage();
   const account = useAccount();
@@ -56,7 +59,7 @@ const SignInWithEthereum: FC = () => {
       {isSigningIn && (
         <div className="loading loading-spinner" />
       )}
-      Sign In with Ethereum
+      {btnLabel ?? 'Sign In with Ethereum'}
     </button>
   );
 }
