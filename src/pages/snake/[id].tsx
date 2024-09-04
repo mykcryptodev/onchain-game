@@ -55,6 +55,11 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
   const [userColors, setUserColors] = useState<string[]>([]);
   const [snakeColor, setSnakeColor] = useState<string>("#808080");
   const directionQueue = useRef<Direction[]>([]);
+  const [gameStarted, setGameStarted] = useState<boolean>(false);
+
+  const startGame = () => {
+    setGameStarted(true);
+  }
 
   const resetGame = () => {
     setSnake(INITIAL_SNAKE);
@@ -229,9 +234,11 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
   }, [userColorsData]);
 
   useEffect(() => {
-    const gameLoop = setInterval(moveSnake, 100);
-    return () => clearInterval(gameLoop);
-  }, [moveSnake]);
+    if (gameStarted) {
+      const gameLoop = setInterval(moveSnake, 100);
+      return () => clearInterval(gameLoop);
+    }
+  }, [gameStarted, moveSnake]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyPress);
@@ -270,31 +277,41 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
             height: GRID_SIZE * CELL_SIZE,
           }}
         >
-          <code className="absolute text-xs left-2 top-2">score: {score}</code>
-          <div className="absolute inset-0 border-2 border-[#98E15F] rounded-lg">
-            {snake.map((segment, index) => (
-              <div
-                key={index}
-                className="absolute"
-                style={{
-                  left: segment.x * CELL_SIZE,
-                  top: segment.y * CELL_SIZE,
-                  width: CELL_SIZE,
-                  height: CELL_SIZE,
-                  backgroundColor: snakeColor,
-                }}
-              />
-            ))}
-            <div
-              className="absolute bg-gray-600"
-              style={{
-                left: food.x * CELL_SIZE,
-                top: food.y * CELL_SIZE,
-                width: CELL_SIZE,
-                height: CELL_SIZE,
-              }}
-            />
-          </div>
+          {gameStarted ? (
+            <>
+              <code className="absolute text-xs left-2 top-2">score: {score}</code>
+              <div className="absolute inset-0 border-2 border-[#98E15F] rounded-lg">
+                {snake.map((segment, index) => (
+                  <div
+                    key={index}
+                    className="absolute"
+                    style={{
+                      left: segment.x * CELL_SIZE,
+                      top: segment.y * CELL_SIZE,
+                      width: CELL_SIZE,
+                      height: CELL_SIZE,
+                      backgroundColor: snakeColor,
+                    }}
+                  />
+                ))}
+                <div
+                  className="absolute bg-gray-600"
+                  style={{
+                    left: food.x * CELL_SIZE,
+                    top: food.y * CELL_SIZE,
+                    width: CELL_SIZE,
+                    height: CELL_SIZE,
+                  }}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full grid place-content-center">
+              <button onClick={startGame} className="btn btn-primary">
+                Start Game
+              </button>
+            </div>
+          )}
           {gameOver && (
             <div className="flex h-full items-center w-full absolute">
               <div className="flex flex-col items-center justify-center w-full gap-2">
