@@ -1,8 +1,10 @@
-import { type GetServerSideProps, type NextPage } from 'next';
-import React, { useCallback, useEffect, useRef,useState } from 'react';
+import { type GetServerSideProps, type NextPage } from "next";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useAccount } from "wagmi";
 
-import CreateSnakeGame from '~/components/Snake/Create';
-import { api } from '~/utils/api';
+import ChooseSnakeColors from "~/components/Snake/ChooseSnakeColors";
+import CreateSnakeGame from "~/components/Snake/Create";
+import { api } from "~/utils/api";
 
 const GRID_SIZE = 20;
 const CELL_SIZE = 20;
@@ -28,12 +30,26 @@ interface Props {
 }
 
 const SnakeGame: NextPage<Props> = ({ id }) => {
+  const { address } = useAccount();
+  const { data: userColorsData, isLoading: loadingUserColors } =
+    api.nfts.getOwnedBaseColors.useQuery(
+      {
+        address: address ?? "0x4724947b96ece51b8aed460b00f0f7dd51ed834f",
+      },
+      {
+        enabled: !!address,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+      },
+    );
   const { mutate: recordMove } = api.snake.recordMove.useMutation();
   const [snake, setSnake] = useState<typeof INITIAL_SNAKE>(INITIAL_SNAKE);
   const [direction, setDirection] = useState<Direction>(INITIAL_DIRECTION);
   const [food, setFood] = useState<Food>(INITIAL_FOOD);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
+  const [userColors, setUserColors] = useState<string[]>([]);
+  const [snakeColor, setSnakeColor] = useState<string>("#22c55e");
   const directionQueue = useRef<Direction[]>([]);
 
   const resetGame = () => {
@@ -44,7 +60,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
     setScore(0);
     directionQueue.current = [];
   };
-  
+
   const moveSnake = useCallback(() => {
     if (gameOver) return;
 
@@ -55,17 +71,22 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
     }
 
     const newSnake = [...snake];
-    const head = { ...newSnake[0] } as typeof newSnake[0];
+    const head = { ...newSnake[0] } as (typeof newSnake)[0];
     head.x = (newSnake[0]?.x ?? 0) + direction.x;
     head.y = (newSnake[0]?.y ?? 0) + direction.y;
 
     // Check collision with walls
-    if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
+    if (
+      head.x < 0 ||
+      head.x >= GRID_SIZE ||
+      head.y < 0 ||
+      head.y >= GRID_SIZE
+    ) {
       setGameOver(true);
       recordMove({
         id,
         action: {
-          label: 'died',
+          label: "died",
           x: head.x,
           y: head.y,
           currentScore: score,
@@ -77,12 +98,16 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
     }
 
     // Check collision with self
-    if (newSnake.slice(1).some(segment => segment.x === head.x && segment.y === head.y)) {
+    if (
+      newSnake
+        .slice(1)
+        .some((segment) => segment.x === head.x && segment.y === head.y)
+    ) {
       setGameOver(true);
       recordMove({
         id,
         action: {
-          label: 'died',
+          label: "died",
           x: head.x,
           y: head.y,
           currentScore: score,
@@ -97,10 +122,10 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
 
     // Check if snake ate food
     if (head.x === food.x && head.y === food.y) {
-      recordMove({ 
+      recordMove({
         id,
         action: {
-          label: 'eat',
+          label: "eat",
           x: head.x,
           y: head.y,
           currentScore: score + 1,
@@ -108,14 +133,14 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
         },
         gridSize: GRID_SIZE,
       });
-      setScore(prevScore => prevScore + 1);
+      setScore((prevScore) => prevScore + 1);
       setFood(generateFood(newSnake));
     } else {
       newSnake.pop();
     }
 
     setSnake(newSnake);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snake, direction, food, gameOver, id, recordMove, score]);
 
   const generateFood = useCallback((snakeBody: typeof INITIAL_SNAKE) => {
@@ -125,51 +150,79 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
         x: Math.floor(Math.random() * GRID_SIZE),
         y: Math.floor(Math.random() * GRID_SIZE),
       };
-    } while (snakeBody.some(segment => segment.x === newFood.x && segment.y === newFood.y));
+    } while (
+      snakeBody.some(
+        (segment) => segment.x === newFood.x && segment.y === newFood.y,
+      )
+    );
     return newFood;
   }, []);
 
-  const handleKeyPress = useCallback((e: KeyboardEvent) => {
-    e.preventDefault();
-    if (gameOver) return;
+  const handleKeyPress = useCallback(
+    (e: KeyboardEvent) => {
+      e.preventDefault();
+      if (gameOver) return;
 
-    const handleRecordMove = (label: 'up' | 'down' | 'left' | 'right' | 'eat' | 'died') => {
-      recordMove({ 
-        id,
-        action: {
-          label,
-          x: snake[0]?.x ?? 0,
-          y: snake[0]?.y ?? 0,
-          currentScore: score,
-          length: snake.length,
-        },
-        gridSize: GRID_SIZE,
-      });
-    }
+      const handleRecordMove = (
+        label: "up" | "down" | "left" | "right" | "eat" | "died",
+      ) => {
+        recordMove({
+          id,
+          action: {
+            label,
+            x: snake[0]?.x ?? 0,
+            y: snake[0]?.y ?? 0,
+            currentScore: score,
+            length: snake.length,
+          },
+          gridSize: GRID_SIZE,
+        });
+      };
 
-    const getNextDirection = (key: string): Direction | null => {
-      switch (key) {
-        case 'ArrowUp': return { x: 0, y: -1 };
-        case 'ArrowDown': return { x: 0, y: 1 };
-        case 'ArrowLeft': return { x: -1, y: 0 };
-        case 'ArrowRight': return { x: 1, y: 0 };
-        default: return null;
+      const getNextDirection = (key: string): Direction | null => {
+        switch (key) {
+          case "ArrowUp":
+            return { x: 0, y: -1 };
+          case "ArrowDown":
+            return { x: 0, y: 1 };
+          case "ArrowLeft":
+            return { x: -1, y: 0 };
+          case "ArrowRight":
+            return { x: 1, y: 0 };
+          default:
+            return null;
+        }
+      };
+
+      const nextDirection = getNextDirection(e.key);
+      if (nextDirection) {
+        const currentDirection =
+          directionQueue.current.length > 0
+            ? directionQueue.current[directionQueue.current.length - 1]
+            : direction;
+
+        // Prevent 180-degree turns
+        if (
+          nextDirection.x !== -currentDirection!.x ||
+          nextDirection.y !== -currentDirection!.y
+        ) {
+          directionQueue.current.push(nextDirection);
+          handleRecordMove(
+            e.key.toLowerCase().replace("arrow", "") as
+              | "up"
+              | "down"
+              | "left"
+              | "right",
+          );
+        }
       }
-    };
+    },
+    [gameOver, id, recordMove, score, snake, direction],
+  );
 
-    const nextDirection = getNextDirection(e.key);
-    if (nextDirection) {
-      const currentDirection = directionQueue.current.length > 0 
-        ? directionQueue.current[directionQueue.current.length - 1] 
-        : direction;
-      
-      // Prevent 180-degree turns
-      if (nextDirection.x !== -currentDirection!.x || nextDirection.y !== -currentDirection!.y) {
-        directionQueue.current.push(nextDirection);
-        handleRecordMove(e.key.toLowerCase().replace('arrow', '') as 'up' | 'down' | 'left' | 'right');
-      }
-    }
-  }, [gameOver, id, recordMove, score, snake, direction]);
+  useEffect(() => {
+    setUserColors(userColorsData?.nfts?.map((nft) => nft.name) ?? []);
+  }, [userColorsData]);
 
   useEffect(() => {
     const gameLoop = setInterval(moveSnake, 100);
@@ -177,48 +230,64 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
   }, [moveSnake]);
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
   }, [handleKeyPress]);
 
+  console.log({ userColors });
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <h1 className="text-4xl font-bold mb-4">Snake Game</h1>
-      <div className="relative" style={{ width: GRID_SIZE * CELL_SIZE, height: GRID_SIZE * CELL_SIZE }}>
-        <div className="absolute inset-0 border-2 border-gray-300">
-          {snake.map((segment, index) => (
+    <div className="grid grid-cols-[1fr_150px] gap-4">
+      <div className="flex min-h-screen flex-col items-center bg-gray-100">
+        <h1 className="mb-4 text-4xl font-bold">Snake Game</h1>
+        <div
+          className="relative"
+          style={{
+            width: GRID_SIZE * CELL_SIZE,
+            height: GRID_SIZE * CELL_SIZE,
+          }}
+        >
+          <div className="absolute inset-0 border-2 border-gray-300">
+            {snake.map((segment, index) => (
+              <div
+                key={index}
+                className="absolute"
+                style={{
+                  left: segment.x * CELL_SIZE,
+                  top: segment.y * CELL_SIZE,
+                  width: CELL_SIZE,
+                  height: CELL_SIZE,
+                  backgroundColor: snakeColor,
+                }}
+              />
+            ))}
             <div
-              key={index}
-              className="absolute bg-green-500"
+              className="absolute bg-red-500"
               style={{
-                left: segment.x * CELL_SIZE,
-                top: segment.y * CELL_SIZE,
+                left: food.x * CELL_SIZE,
+                top: food.y * CELL_SIZE,
                 width: CELL_SIZE,
                 height: CELL_SIZE,
               }}
             />
-          ))}
-          <div
-            className="absolute bg-red-500"
-            style={{
-              left: food.x * CELL_SIZE,
-              top: food.y * CELL_SIZE,
-              width: CELL_SIZE,
-              height: CELL_SIZE,
-            }}
-          />
+          </div>
         </div>
+        <div className="mt-4 text-xl">Score: {score}</div>
+        {gameOver && (
+          <div className="mt-4">
+            <p className="text-2xl font-bold text-red-600">Game Over!</p>
+            <CreateSnakeGame
+              btnLabel="Play Again"
+              onClick={() => void resetGame()}
+            />
+          </div>
+        )}
       </div>
-      <div className="mt-4 text-xl">Score: {score}</div>
-      {gameOver && (
-        <div className="mt-4">
-          <p className="text-2xl font-bold text-red-600">Game Over!</p>
-          <CreateSnakeGame 
-            btnLabel="Play Again"
-            onClick={() => void resetGame()}
-          />
-        </div>
-      )}
+      <ChooseSnakeColors
+        userColors={userColors}
+        isLoading={loadingUserColors}
+        snakeColorUpdater={setSnakeColor}
+      />
     </div>
   );
 };

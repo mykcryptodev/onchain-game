@@ -1,4 +1,5 @@
 import { gameRouter } from "~/server/api/routers/game";
+import { nftRouter } from "~/server/api/routers/nfts";
 import { snakeRouter } from "~/server/api/routers/snake";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
@@ -10,6 +11,7 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 export const appRouter = createTRPCRouter({
   game: gameRouter,
   snake: snakeRouter,
+  nfts: nftRouter,
 });
 
 // export type definition of API
