@@ -95,8 +95,7 @@ const Nokia3310Wrapper: FC<Props> = ({ children, screenWidth, screenHeight, onBu
       {buttonLayout.map((button) => (
         <button
           key={button.label}
-          // className="absolute bg-transparent"
-          className="absolute bg-red-400"
+          className="absolute bg-transparent"
           style={{
             top: `${button.top}%`,
             left: `${button.left}%`,
