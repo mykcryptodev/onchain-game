@@ -1,5 +1,6 @@
 import { type GetServerSideProps, type NextPage } from "next";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
 import ChooseSnakeColors from "~/components/Snake/ChooseSnakeColors";
@@ -34,7 +35,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
   const { data: userColorsData, isLoading: loadingUserColors } =
     api.nfts.getOwnedBaseColors.useQuery(
       {
-        address: address ?? "0x4724947b96ece51b8aed460b00f0f7dd51ed834f",
+        address: address ?? zeroAddress,
       },
       {
         enabled: !!address,
