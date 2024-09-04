@@ -14,7 +14,7 @@ const CreateSnakeGame: FC<Props> = ({ btnLabel, onClick }) => {
   const handleCreate = async () => {
     const { id } = await create();
     console.log("about to push to", `/snake/${id}`);
-    void router.push(`/snake/${id}`);
+    void router.push(`/snake/${id}`, undefined, { shallow: true });
     console.log("pushed to", `/snake/${id}`);
   }
 
