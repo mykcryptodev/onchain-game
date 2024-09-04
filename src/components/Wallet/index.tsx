@@ -33,8 +33,9 @@ import usePrevious from '~/hooks/usePrevious';
 
 type Props = {
   btnLabel?: string;
+  withWalletAggregator?: boolean;
 }
-export function Wallet({ btnLabel }: Props) {
+export function Wallet({ btnLabel, withWalletAggregator }: Props) {
   const { address } = useAccount();
   const previousAddress = usePrevious(address);
   const { data: sessionData } = useSession();
@@ -87,7 +88,7 @@ export function Wallet({ btnLabel }: Props) {
   return (
     <div className="flex gap-2 items-center">
       <WalletComponent>
-        <ConnectWallet withWalletAggregator text={btnLabel}>
+        <ConnectWallet withWalletAggregator={withWalletAggregator} text={btnLabel}>
           <Avatar className="h-6 w-6" />
           <Name />
         </ConnectWallet>

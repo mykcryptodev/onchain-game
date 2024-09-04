@@ -6,6 +6,8 @@ import { useAccount } from "wagmi";
 import ChooseSnakeColors from "~/components/Snake/ChooseSnakeColors";
 import CreateSnakeGame from "~/components/Snake/Create";
 import SaveSnakeGame from "~/components/Snake/SaveGame";
+import GameBoyWrapper from "~/components/utils/GameBoyWrapper";
+import { Portal } from "~/components/utils/Portal";
 import { api } from "~/utils/api";
 
 const GRID_SIZE = 20;
@@ -51,7 +53,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
   const [userColors, setUserColors] = useState<string[]>([]);
-  const [snakeColor, setSnakeColor] = useState<string>("#22c55e");
+  const [snakeColor, setSnakeColor] = useState<string>("#808080");
   const directionQueue = useRef<Direction[]>([]);
 
   const resetGame = () => {
@@ -239,11 +241,13 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
   console.log({ userColors });
 
   return (
-    <div className="grid grid-cols-[1fr_150px] gap-4">
-      <div className="flex min-h-screen flex-col items-center bg-gray-100">
-        <h1 className="mb-4 text-4xl font-bold">Snake Game</h1>
+    <div className="flex min-h-screen flex-col items-center">
+      <GameBoyWrapper
+        screenWidth={GRID_SIZE * CELL_SIZE}
+        screenHeight={GRID_SIZE * CELL_SIZE}
+      >
         <div
-          className="relative"
+          className="relative bg-opacity-75 bg-gray-300"
           style={{
             width: GRID_SIZE * CELL_SIZE,
             height: GRID_SIZE * CELL_SIZE,
@@ -264,7 +268,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
               />
             ))}
             <div
-              className="absolute bg-red-500"
+              className="absolute bg-gray-600"
               style={{
                 left: food.x * CELL_SIZE,
                 top: food.y * CELL_SIZE,
@@ -273,24 +277,39 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
               }}
             />
           </div>
+          {gameOver && (
+              <div className="flex h-full items-center w-full absolute">
+                <div className="flex flex-col items-center justify-center w-full gap-2">
+                  <p className="text-2xl font-bold text-red-600">Game Over!</p>
+                  <CreateSnakeGame
+                    btnLabel="Play Again"
+                    onClick={() => void resetGame()}
+                  />
+                  <SaveSnakeGame gameId={id} />
+                </div>
+              </div>
+            )}
         </div>
-        <div className="mt-4 text-xl">Score: {score}</div>
-        {gameOver && (
-          <div className="flex flex-col gap-2 mt-4">
-            <p className="text-2xl font-bold text-red-600">Game Over!</p>
-            <CreateSnakeGame
-              btnLabel="Play Again"
-              onClick={() => void resetGame()}
-            />
-            <SaveSnakeGame gameId={id} />
+      </GameBoyWrapper>
+
+      <div className="mt-4 text-xl">Score: {score}</div>
+      <Portal>
+        <input type="checkbox" id="base_color_modal" className="modal-toggle" />
+          <div className="modal modal-bottom" role="dialog">
+            <div className="modal-box max-w-md mx-auto">
+              <h3 className="font-bold text-xl mb-2">Select Snake Color</h3>
+              <p className="mb-4 text-sm">Select a color from your Base Colors collection to customize your snake</p>
+              <label htmlFor="base_color_modal" className="absolute top-4 right-4 btn btn-ghost btn-circle btn-xs">
+                &times;
+              </label>
+              <ChooseSnakeColors
+                userColors={userColors}
+                isLoading={loadingUserColors}
+                snakeColorUpdater={setSnakeColor}
+              />
+            </div>
           </div>
-        )}
-      </div>
-      <ChooseSnakeColors
-        userColors={userColors}
-        isLoading={loadingUserColors}
-        snakeColorUpdater={setSnakeColor}
-      />
+      </Portal>
     </div>
   );
 };

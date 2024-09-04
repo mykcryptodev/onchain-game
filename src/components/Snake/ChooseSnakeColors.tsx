@@ -11,26 +11,27 @@ export default function ChooseSnakeColors({
 }: ChooseColorsProps) {
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col items-center bg-gray-100 pt-10">
+      <div className="flex flex-col items-center">
         ...loading colors
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-gray-100 pt-10">
-      <h1 className="mb-4 text-center text-xl font-bold">Your BaseColors</h1>
+    <div className="flex flex-wrap gap-2 items-center">
       {userColors.length > 0 ? (
         userColors.map((color) => (
-          <div key={color} className="flex flex-row gap-2">
-            <div
+          <div key={color} className="flex gap-2">
+            <button
               onClick={() => snakeColorUpdater(color)}
-              className="h-6 w-6"
-              style={{
-                backgroundColor: color,
-              }}
-            />
-            <span>{color}</span>
+              className="badge badge-lg badge-outline"
+            >
+              <div 
+                className="rounded-full h-3.5 w-3.5 mr-2"
+                style={{ backgroundColor: color }}
+              />
+              {color}
+            </button>
           </div>
         ))
       ) : (
