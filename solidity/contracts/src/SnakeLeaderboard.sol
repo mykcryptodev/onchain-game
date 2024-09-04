@@ -20,7 +20,6 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
 
     uint256 public constant LEADERBOARD_SIZE = 10;
 
-    mapping(bytes32 => bool) public usedSignatures;
     mapping(address => GameResult) public playerBestScores;
 
     GameResult[LEADERBOARD_SIZE] private leaderboard;
@@ -37,22 +36,16 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
     /// @param score The player's score for this game
     /// @param ipfsCid The IPFS CID of the game replay
     /// @param timestamp The timestamp of when the game was played
-    /// @param signature The signature from the game server to verify the result
     function submitGameResult(
         address player,
         uint256 score,
         string memory ipfsCid,
-        uint256 timestamp,
-        bytes memory signature
+        uint256 timestamp
     ) external whenNotPaused nonReentrant onlyOwner {
-        bytes32 messageHash = keccak256(abi.encodePacked(player, score, ipfsCid, timestamp));
-        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
-        
-        address signer = ECDSA.recover(ethSignedMessageHash, signature);
-        require(signer == owner(), "Invalid signature");
-        require(!usedSignatures[ethSignedMessageHash], "Signature already used");
-        
-        usedSignatures[ethSignedMessageHash] = true;
+        require(player != address(0), "Invalid player address");
+        require(score > 0, "Invalid score");
+        require(bytes(ipfsCid).length > 0, "Invalid IPFS CID");
+        require(timestamp > 0, "Invalid timestamp");
 
         if (score > playerBestScores[player].score) {
             playerBestScores[player] = GameResult(player, score, ipfsCid, timestamp);
@@ -140,44 +133,6 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
         _unpause();
     }
 
-    /// @notice Submits multiple game results in a single transaction
-    /// @param players An array of player addresses
-    /// @param scores An array of scores for each game
-    /// @param ipfsCids An array of IPFS CIDs for each game replay
-    /// @param timestamps An array of timestamps for each game
-    /// @param signatures An array of signatures from the game server for each game
-    function batchSubmitGameResults(
-        address[] memory players,
-        uint256[] memory scores,
-        string[] memory ipfsCids,
-        uint256[] memory timestamps,
-        bytes[] memory signatures
-    ) external whenNotPaused nonReentrant onlyOwner {
-        require(players.length == scores.length && 
-                scores.length == ipfsCids.length && 
-                scores.length == timestamps.length && 
-                scores.length == signatures.length, 
-                "Input arrays must have the same length");
-
-        for (uint256 i = 0; i < scores.length; i++) {
-            bytes32 messageHash = keccak256(abi.encodePacked(players[i], scores[i], ipfsCids[i], timestamps[i]));
-            bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
-            
-            address signer = ECDSA.recover(ethSignedMessageHash, signatures[i]);
-            require(signer == owner(), "Invalid signature");
-            require(!usedSignatures[ethSignedMessageHash], "Signature already used");
-            
-            usedSignatures[ethSignedMessageHash] = true;
-
-            if (scores[i] > playerBestScores[players[i]].score) {
-                playerBestScores[players[i]] = GameResult(players[i], scores[i], ipfsCids[i], timestamps[i]);
-                updateLeaderboard(players[i], scores[i], ipfsCids[i], timestamps[i]);
-            }
-
-            emit GameResultSubmitted(players[i], scores[i], ipfsCids[i], timestamps[i]);
-        }
-    }
-
     /// @notice Retrieves a player's best score
     /// @param player The address of the player
     /// @return A GameResult struct containing the player's best score information
@@ -185,23 +140,4 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
         return playerBestScores[player];
     }
 
-    /// @notice Verifies a game result
-    /// @param player The address of the player
-    /// @param score The score to verify
-    /// @param ipfsCid The IPFS CID of the game replay
-    /// @param timestamp The timestamp of the game
-    /// @param signature The signature from the game server
-    /// @return A boolean indicating whether the game result is valid
-    function verifyGameResult(
-        address player,
-        uint256 score,
-        string memory ipfsCid,
-        uint256 timestamp,
-        bytes memory signature
-    ) public view returns (bool) {
-        bytes32 messageHash = keccak256(abi.encodePacked(player, score, ipfsCid, timestamp));
-        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
-        address signer = ECDSA.recover(ethSignedMessageHash, signature);
-        return signer == owner();
-    }
 }
