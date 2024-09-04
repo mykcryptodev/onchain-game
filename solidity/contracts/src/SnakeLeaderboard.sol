@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
     using ECDSA for bytes32;
@@ -46,7 +46,7 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
         bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
         
         address signer = ethSignedMessageHash.recover(signature);
-        require(signer == owner, "Invalid signature");
+        require(signer == owner(), "Invalid signature");
         require(!usedSignatures[ethSignedMessageHash], "Signature already used");
         
         usedSignatures[ethSignedMessageHash] = true;
@@ -143,7 +143,7 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
             bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
             
             address signer = ethSignedMessageHash.recover(signatures[i]);
-            require(signer == owner, "Invalid signature");
+            require(signer == owner(), "Invalid signature");
             require(!usedSignatures[ethSignedMessageHash], "Signature already used");
             
             usedSignatures[ethSignedMessageHash] = true;
@@ -181,6 +181,6 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
         bytes32 messageHash = keccak256(abi.encodePacked(player, score, ipfsCid, timestamp));
         bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
         address signer = ethSignedMessageHash.recover(signature);
-        return signer == owner;
+        return signer == owner();
     }
 }
