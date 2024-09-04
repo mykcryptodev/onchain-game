@@ -187,4 +187,84 @@ contract SnakeGameTest is Test {
 
         console.log("Player %s best score: %d", player, result.score);
     }
+
+    function testUpdateLeaderboardWithHigherScore() public {
+        // Submit initial score for player1
+        uint256 initialScore = 100;
+        submitGameResult(player1, initialScore);
+
+        GameResult memory result = game.getPlayerBestScore(player1);
+        assertEq(result.score, initialScore);
+
+        // Submit higher score for player1
+        uint256 higherScore = 200;
+        submitGameResult(player1, higherScore);
+
+        result = game.getPlayerBestScore(player1);
+        assertEq(result.score, higherScore);
+
+        // Check leaderboard
+        GameResult[10] memory leaderboard = game.getLeaderboard();
+        assertEq(leaderboard[0].player, player1);
+        assertEq(leaderboard[0].score, higherScore);
+    }
+
+    function testUpdateLeaderboardWithLowerScore() public {
+        // Submit initial score for player1
+        uint256 initialScore = 200;
+        submitGameResult(player1, initialScore);
+
+        GameResult memory result = game.getPlayerBestScore(player1);
+        assertEq(result.score, initialScore);
+
+        // Submit lower score for player1
+        uint256 lowerScore = 100;
+        submitGameResult(player1, lowerScore);
+
+        result = game.getPlayerBestScore(player1);
+        assertEq(result.score, initialScore);
+
+        // Check leaderboard
+        GameResult[10] memory leaderboard = game.getLeaderboard();
+        assertEq(leaderboard[0].player, player1);
+        assertEq(leaderboard[0].score, initialScore);
+    }
+
+    function testLeaderboardOrderWithMultiplePlayers() public {
+        // Submit scores for player1 and player2
+        submitGameResult(player1, 100);
+        submitGameResult(player2, 200);
+
+        GameResult[10] memory leaderboard = game.getLeaderboard();
+        assertEq(leaderboard[0].player, player2);
+        assertEq(leaderboard[0].score, 200);
+        assertEq(leaderboard[1].player, player1);
+        assertEq(leaderboard[1].score, 100);
+
+        // Player1 submits a new high score
+        submitGameResult(player1, 300);
+
+        leaderboard = game.getLeaderboard();
+        assertEq(leaderboard[0].player, player1);
+        assertEq(leaderboard[0].score, 300);
+        assertEq(leaderboard[1].player, player2);
+        assertEq(leaderboard[1].score, 200);
+        // check that player1's old score is not on the leaderboard
+        assertEq(leaderboard[2].player, address(0));
+        assertEq(leaderboard[2].score, 0);
+    }
+
+    // Helper function to submit a game result
+    function submitGameResult(address player, uint256 score) internal {
+        string memory ipfsCid = "QmTest";
+        uint256 timestamp = block.timestamp;
+
+        bytes32 messageHash = keccak256(abi.encodePacked(player, score, ipfsCid, timestamp));
+        bytes32 ethSignedMessageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, ethSignedMessageHash);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        vm.prank(owner);
+        game.submitGameResult(player, score, ipfsCid, timestamp, signature);
+    }
 }

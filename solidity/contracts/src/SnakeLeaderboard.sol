@@ -63,12 +63,13 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
     }
 
     function updateLeaderboard(address player, uint256 score, string memory ipfsCid, uint256 timestamp) internal {
-        uint256 position = LEADERBOARD_SIZE;
+        uint256 oldPosition = LEADERBOARD_SIZE;
+        uint256 newPosition = LEADERBOARD_SIZE;
         
         // Check if player is already on the leaderboard
         if (leaderboardPositions[player] > 0) {
-            position = leaderboardPositions[player] - 1;
-            if (leaderboard[position].score >= score) {
+            oldPosition = leaderboardPositions[player] - 1;
+            if (leaderboard[oldPosition].score >= score) {
                 return; // No update needed
             }
         }
@@ -76,27 +77,38 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
         // Find the correct position for the new score
         for (uint256 i = 0; i < leaderboardCount; i++) {
             if (score > leaderboard[i].score) {
-                position = i;
+                newPosition = i;
                 break;
             }
         }
 
         // If the leaderboard isn't full, use the next available position
-        if (position == LEADERBOARD_SIZE && leaderboardCount < LEADERBOARD_SIZE) {
-            position = leaderboardCount;
+        if (newPosition == LEADERBOARD_SIZE && leaderboardCount < LEADERBOARD_SIZE) {
+            newPosition = leaderboardCount;
         }
 
         // Only proceed if the score should be on the leaderboard
-        if (position < LEADERBOARD_SIZE) {
+        if (newPosition < LEADERBOARD_SIZE) {
+            // Remove the old score if it exists
+            if (oldPosition < LEADERBOARD_SIZE) {
+                for (uint256 i = oldPosition; i < leaderboardCount - 1; i++) {
+                    leaderboard[i] = leaderboard[i + 1];
+                    leaderboardPositions[leaderboard[i].player] = i + 1;
+                }
+                if (leaderboardCount > 0) {
+                    leaderboardCount--;
+                }
+            }
+
             // Shift entries down
-            for (uint256 i = min(leaderboardCount, LEADERBOARD_SIZE - 1); i > position; i--) {
+            for (uint256 i = min(leaderboardCount, LEADERBOARD_SIZE - 1); i > newPosition; i--) {
                 leaderboard[i] = leaderboard[i - 1];
                 leaderboardPositions[leaderboard[i].player] = i + 1;
             }
 
             // Insert new score
-            leaderboard[position] = GameResult(player, score, ipfsCid, timestamp);
-            leaderboardPositions[player] = position + 1;
+            leaderboard[newPosition] = GameResult(player, score, ipfsCid, timestamp);
+            leaderboardPositions[player] = newPosition + 1;
 
             // Update leaderboard count
             if (leaderboardCount < LEADERBOARD_SIZE) {
@@ -107,7 +119,8 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    function min(uint256 a, uint256 b) private pure returns (uint256) {
+    // Helper function to get the minimum of two uint256 values
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a < b ? a : b;
     }
 
