@@ -2,6 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 
 import CreateGame from "~/components/Game/Create";
+import SignInGuest from "~/components/Wallet/GuestSignIn";
 import SignIn from "~/components/Wallet/SignIn";
 import { APP_DESCRIPTION, APP_NAME } from "~/constants";
 
@@ -44,6 +45,7 @@ export default function Home() {
           </div>
           <div className="flex flex-col items-center gap-2">
             <SignIn />
+            <SignInGuest />
             <CreateGame />
           </div>
         </div>

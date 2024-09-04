@@ -5,6 +5,7 @@ import { useAccount } from "wagmi";
 
 import ChooseSnakeColors from "~/components/Snake/ChooseSnakeColors";
 import CreateSnakeGame from "~/components/Snake/Create";
+import MergeEthereumAccount from "~/components/Wallet/MergeEthereumAccount";
 import { api } from "~/utils/api";
 
 const GRID_SIZE = 20;
@@ -283,6 +284,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
             />
           </div>
         )}
+        <MergeEthereumAccount />
       </div>
       <ChooseSnakeColors
         userColors={userColors}

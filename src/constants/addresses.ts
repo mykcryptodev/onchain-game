@@ -20,4 +20,4 @@ export const USDC: ContractAddress = {
   [polygon.id]: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
 };
 
-export const BASE_COLORS = "0x7bc1c072742d8391817eb4eb2317f98dc72c61db";
+export const BASE_COLORS: `0x${string}` = "0x7bc1c072742d8391817eb4eb2317f98dc72c61db";

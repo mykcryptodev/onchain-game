@@ -57,6 +57,8 @@ model User {
     gamesPlayed Player[]
 
     isDealer Boolean @default(false)
+
+    snakeGames SnakeGame[]
 }
 
 model VerificationToken {
@@ -163,5 +165,6 @@ model SnakeGame {
     id      String @id @default(cuid())
     history Json
     score   Int
-    player  String
+    user   User @relation(fields: [userId], references: [id])
+    userId  String
 }

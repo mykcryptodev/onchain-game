@@ -1,4 +1,3 @@
-import { isAddressEqual, zeroAddress } from "viem";
 import { z } from "zod";
 
 import {
@@ -23,7 +22,7 @@ export const snakeRouter = createTRPCRouter({
     .mutation(async ({ ctx }) => {
       return await ctx.db.snakeGame.create({
         data: {
-          player: ctx.session.user.address ?? zeroAddress,
+          user: { connect: { id: ctx.session.user.id } },
           history: { actions: [] },
           score: 0,
         },
@@ -48,7 +47,7 @@ export const snakeRouter = createTRPCRouter({
       if (!game) {
         throw new Error("Game not found");
       }
-      if (!isAddressEqual(ctx.session.user.address ?? zeroAddress, game.player)) {
+      if (game.userId !== ctx.session.user.id) {
         throw new Error("You are not the player of this game");
       }
 
