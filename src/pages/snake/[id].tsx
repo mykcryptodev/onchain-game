@@ -255,8 +255,10 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
             key: keyMap[btnLabel as "down" | "up" | "left" | "right"],
           });
           window.dispatchEvent(keydownEvent);
-          // vibrate the phone a little bit
-          window.navigator.vibrate(50);
+          // Vibrate the phone if the vibrate API is supported
+          if (window.navigator.vibrate) {
+            window.navigator.vibrate(50);
+          }
         }}
         screenWidth={GRID_SIZE * CELL_SIZE}
         screenHeight={GRID_SIZE * CELL_SIZE}
