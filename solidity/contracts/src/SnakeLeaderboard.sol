@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -16,6 +17,8 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
         uint256 timestamp;
     }
 
+    uint256 public constant LEADERBOARD_SIZE = 10;
+
     mapping(bytes32 => bool) public usedSignatures;
     mapping(address => GameResult) public playerBestScores;
 
@@ -26,7 +29,7 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
     event GameResultSubmitted(address indexed player, uint256 score, string ipfsCid, uint256 timestamp);
     event LeaderboardUpdated(address player, uint256 score);
 
-    constructor(address msg.sender) {}
+    constructor() Ownable(msg.sender) {}
 
     /// @notice Submits a single game result to the contract
     /// @param player The address of the player
@@ -41,11 +44,10 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
         uint256 timestamp,
         bytes memory signature
     ) external whenNotPaused nonReentrant onlyOwner {
-
         bytes32 messageHash = keccak256(abi.encodePacked(player, score, ipfsCid, timestamp));
-        bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
+        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
         
-        address signer = ethSignedMessageHash.recover(signature);
+        address signer = ECDSA.recover(ethSignedMessageHash, signature);
         require(signer == owner(), "Invalid signature");
         require(!usedSignatures[ethSignedMessageHash], "Signature already used");
         
@@ -105,7 +107,7 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice Retrieves the current leaderboard
     /// @return An array of GameResult structs representing the leaderboard
-    function getLeaderboard() public view returns (GameResult[] memory) {
+    function getLeaderboard() public view returns (GameResult[LEADERBOARD_SIZE] memory) {
         return leaderboard;
     }
 
@@ -140,9 +142,9 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
 
         for (uint256 i = 0; i < scores.length; i++) {
             bytes32 messageHash = keccak256(abi.encodePacked(players[i], scores[i], ipfsCids[i], timestamps[i]));
-            bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
+            bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
             
-            address signer = ethSignedMessageHash.recover(signatures[i]);
+            address signer = ECDSA.recover(ethSignedMessageHash, signatures[i]);
             require(signer == owner(), "Invalid signature");
             require(!usedSignatures[ethSignedMessageHash], "Signature already used");
             
@@ -179,8 +181,8 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
         bytes memory signature
     ) public view returns (bool) {
         bytes32 messageHash = keccak256(abi.encodePacked(player, score, ipfsCid, timestamp));
-        bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
-        address signer = ethSignedMessageHash.recover(signature);
+        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
+        address signer = ECDSA.recover(ethSignedMessageHash, signature);
         return signer == owner();
     }
 }
