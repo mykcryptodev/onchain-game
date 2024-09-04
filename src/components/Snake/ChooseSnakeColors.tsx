@@ -1,3 +1,6 @@
+import Image from "next/image";
+import Link from "next/link";
+
 type ChooseColorsProps = {
   userColors: string[];
   isLoading: boolean;
@@ -37,8 +40,33 @@ export default function ChooseSnakeColors({
           </div>
         ))
       ) : (
-        <div>No Owned BaseColors</div>
+        <div className="text-sm p-4 bg-base-200 rounded-lg">
+          Colors you mint on&nbsp;
+          <Link
+            href="https://basecolors.com"
+            rel="noopener noreferrer"
+            target="_blank"
+            className="btn-link"
+          >
+            BaseColors.com
+          </Link>
+          &nbsp;will show up here
+        </div>
       )}
+        <Link
+          href="https://basecolors.com"
+          rel="noopener noreferrer"
+          target="_blank"
+          className="text-xs flex items-center gap-1 w-full justify-end pt-4"
+        >
+          <Image
+            src="/images/basecolors.png"
+            alt="BaseColors"
+            width={14}
+            height={14}
+          />
+          BaseColors.com
+        </Link>
     </div>
   );
 }
