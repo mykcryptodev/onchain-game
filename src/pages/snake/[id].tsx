@@ -7,6 +7,7 @@ import ChooseSnakeColors from "~/components/Snake/ChooseSnakeColors";
 import CreateSnakeGame from "~/components/Snake/Create";
 import SaveSnakeGame from "~/components/Snake/SaveGame";
 import GameBoyWrapper from "~/components/utils/GameBoyWrapper";
+import NokiaWrapper from "~/components/utils/NokiaWrapper";
 import { Portal } from "~/components/utils/Portal";
 import { api } from "~/utils/api";
 
@@ -242,19 +243,19 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
 
   return (
     <div className="flex min-h-screen flex-col items-center">
-      <GameBoyWrapper
+      <NokiaWrapper
         screenWidth={GRID_SIZE * CELL_SIZE}
         screenHeight={GRID_SIZE * CELL_SIZE}
       >
         <div
-          className="relative bg-opacity-75 bg-gray-300"
+          className="relative"
           style={{
             width: GRID_SIZE * CELL_SIZE,
             height: GRID_SIZE * CELL_SIZE,
           }}
         >
-          <code className="absolute text-xs -top-4">score: {score}</code>
-          <div className="absolute inset-0 border-2 border-gray-300">
+          <code className="absolute text-xs left-2 top-2">score: {score}</code>
+          <div className="absolute inset-0 border-2 border-[#98E15F] rounded-lg">
             {snake.map((segment, index) => (
               <div
                 key={index}
@@ -291,7 +292,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
             </div>
           )}
         </div>
-      </GameBoyWrapper>
+      </NokiaWrapper>
       <Portal>
         <input type="checkbox" id="base_color_modal" className="modal-toggle" />
           <div className="modal modal-bottom" role="dialog">
