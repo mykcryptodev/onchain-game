@@ -7,15 +7,16 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
-    using ECDSA for bytes32;
-
-    struct GameResult {
+struct GameResult {
         address player;
         uint256 score;
         string ipfsCid;
         uint256 timestamp;
     }
+
+contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
+    using ECDSA for bytes32;
+    
 
     uint256 public constant LEADERBOARD_SIZE = 10;
 
@@ -70,14 +71,19 @@ contract SnakeGame is Ownable, Pausable, ReentrancyGuard {
             if (leaderboard[position].score >= score) {
                 return; // No update needed
             }
-        } else {
-            // Find position for new score
-            for (uint256 i = 0; i < leaderboardCount; i++) {
-                if (score > leaderboard[i].score) {
-                    position = i;
-                    break;
-                }
+        }
+
+        // Find the correct position for the new score
+        for (uint256 i = 0; i < leaderboardCount; i++) {
+            if (score > leaderboard[i].score) {
+                position = i;
+                break;
             }
+        }
+
+        // If the leaderboard isn't full, use the next available position
+        if (position == LEADERBOARD_SIZE && leaderboardCount < LEADERBOARD_SIZE) {
+            position = leaderboardCount;
         }
 
         // Only proceed if the score should be on the leaderboard
