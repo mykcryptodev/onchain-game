@@ -3,7 +3,10 @@ import { type FC, useState } from 'react';
 import { SiweMessage } from 'siwe';
 import { useAccount, useSignMessage } from 'wagmi';
 
-const MergeEthereumAccount: FC = () => {
+type Props = {
+  btnLabel?: string;
+}
+const MergeEthereumAccount: FC<Props> = ({ btnLabel }) => {
   const { data: sessionData } = useSession();
   const { signMessageAsync } = useSignMessage();
   const account = useAccount();
@@ -54,7 +57,7 @@ const MergeEthereumAccount: FC = () => {
       {isLinking && (
         <div className="loading loading-spinner" />
       )}
-      Merge Ethereum Account
+      {btnLabel ?? 'Merge Ethereum Account'}
     </button>
   );
 };

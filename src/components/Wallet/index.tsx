@@ -31,7 +31,10 @@ import { SUPPORTED_CHAINS } from '~/constants';
 import { USDC } from '~/constants/addresses';
 import usePrevious from '~/hooks/usePrevious';
 
-export function Wallet() {
+type Props = {
+  btnLabel?: string;
+}
+export function Wallet({ btnLabel }: Props) {
   const { address } = useAccount();
   const previousAddress = usePrevious(address);
   const { data: sessionData } = useSession();
@@ -84,7 +87,7 @@ export function Wallet() {
   return (
     <div className="flex gap-2 items-center">
       <WalletComponent>
-        <ConnectWallet withWalletAggregator>
+        <ConnectWallet withWalletAggregator text={btnLabel}>
           <Avatar className="h-6 w-6" />
           <Name />
         </ConnectWallet>

@@ -75,4 +75,22 @@ export const snakeRouter = createTRPCRouter({
         },
       });
     }),
+  saveGame: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const game = await ctx.db.snakeGame.findFirst({
+        where: { id: input.id },
+      });
+      if (!game) {
+        throw new Error("Game not found");
+      }
+      if (game.userId !== ctx.session.user.id) {
+        throw new Error("You are not the player of this game");
+      }
+
+      // TODO: publish the results onchain
+      return true;
+    }),
 });

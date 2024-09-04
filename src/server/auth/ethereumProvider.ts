@@ -65,6 +65,39 @@ export const EthereumProvider = ({ createUser }: EthereumProviderConfig): NextAu
     async function linkAddressToExistingUser({ existingUserId }: { existingUserId: string }) {
       if (!credentials?.address) return null;
 
+      // check if the user who is trying to link (the ethereum wallet that signed)
+      // has already linked an ethereum address
+      const ethereumWalletUser = await db.user.findFirst({
+        where: {
+          address: credentials.address,
+        },
+      });
+      // if the user has already linked an ethereum address to another user,
+      // we should remove the link before linking to the new user
+      // 
+      // this can happen if the user signs in as a guest and connects their wallet
+      // then the come back later and try to connect their ethereum wallet to another
+      // guest account. We should remove the link to the first guest account. 
+      
+      // delete the existing link
+      if (ethereumWalletUser) {
+        await db.user.update({
+          where: {
+            id: ethereumWalletUser.id,
+          },
+          data: {
+            address: null,
+          },
+        });
+        // delete the associated ethereum account
+        await db.account.deleteMany({
+          where: {
+            userId: ethereumWalletUser.id,
+            type: "ethereum",
+          },
+        });
+      }
+
       const existingLinkedUser = await db.user.findUnique({
         where: {
           id: existingUserId,

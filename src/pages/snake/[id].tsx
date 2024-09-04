@@ -6,7 +6,6 @@ import { useAccount } from "wagmi";
 import ChooseSnakeColors from "~/components/Snake/ChooseSnakeColors";
 import CreateSnakeGame from "~/components/Snake/Create";
 import SaveSnakeGame from "~/components/Snake/SaveGame";
-import MergeEthereumAccount from "~/components/Wallet/MergeEthereumAccount";
 import { api } from "~/utils/api";
 
 const GRID_SIZE = 20;
@@ -277,16 +276,15 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
         </div>
         <div className="mt-4 text-xl">Score: {score}</div>
         {gameOver && (
-          <div className="mt-4">
+          <div className="flex flex-col gap-2 mt-4">
             <p className="text-2xl font-bold text-red-600">Game Over!</p>
             <CreateSnakeGame
               btnLabel="Play Again"
               onClick={() => void resetGame()}
             />
+            <SaveSnakeGame gameId={id} />
           </div>
         )}
-        <MergeEthereumAccount />
-        <SaveSnakeGame gameId={id} />
       </div>
       <ChooseSnakeColors
         userColors={userColors}
