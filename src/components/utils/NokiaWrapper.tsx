@@ -25,7 +25,7 @@ const Nokia3310Wrapper: FC<Props> = ({ children, screenWidth, screenHeight, onBu
     { label: '3', top: 69.5, left: 69.5, width: 13, height: 4.5 },
     { label: 'left', top: 76.5, left: 20, width: 12, height: 4.5 },
     { label: '5', top: 78, left: 43.5, width: 14, height: 4.5 },
-    { label: 'right', top: 76.5, left: 67, width: 14, height: 4.5 },
+    { label: 'right', top: 76, left: 67, width: 15, height: 5 },
     { label: '7', top: 83.5, left: 20, width: 13, height: 4.5 },
     { label: 'down', top: 85, left: 43, width: 16, height: 4.5 },
     { label: '9', top: 83, left: 67, width: 14, height: 5 },
@@ -95,7 +95,8 @@ const Nokia3310Wrapper: FC<Props> = ({ children, screenWidth, screenHeight, onBu
       {buttonLayout.map((button) => (
         <button
           key={button.label}
-          className="absolute bg-transparent"
+          // className="absolute bg-transparent"
+          className="absolute bg-red-400"
           style={{
             top: `${button.top}%`,
             left: `${button.left}%`,
