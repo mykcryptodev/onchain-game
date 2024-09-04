@@ -20,22 +20,19 @@ const Nokia3310Wrapper: FC<Props> = ({ children, screenWidth, screenHeight, onBu
   const screenHeightPercent = 27;
 
   const buttonLayout = [
-    { label: '1', top: 62, left: 20, width: 18, height: 9 },
-    { label: '2', top: 62, left: 41, width: 18, height: 9 },
-    { label: '3', top: 62, left: 62, width: 18, height: 9 },
-    { label: '4', top: 72, left: 20, width: 18, height: 9 },
-    { label: '5', top: 72, left: 41, width: 18, height: 9 },
-    { label: '6', top: 72, left: 62, width: 18, height: 9 },
-    { label: '7', top: 82, left: 20, width: 18, height: 9 },
-    { label: '8', top: 82, left: 41, width: 18, height: 9 },
-    { label: '9', top: 82, left: 62, width: 18, height: 9 },
-    { label: '*', top: 92, left: 20, width: 18, height: 9 },
-    { label: '0', top: 92, left: 41, width: 18, height: 9 },
-    { label: '#', top: 92, left: 62, width: 18, height: 9 },
-    { label: 'up', top: 54, left: 41, width: 18, height: 6 },
-    { label: 'down', top: 60, left: 41, width: 18, height: 6 },
-    { label: 'left', top: 57, left: 35, width: 6, height: 6 },
-    { label: 'right', top: 57, left: 59, width: 6, height: 6 },
+    { label: '1', top: 69, left: 20, width: 12, height: 5 },
+    { label: 'up', top: 71, left: 44, width: 13, height: 4.5 },
+    { label: '3', top: 69.5, left: 69.5, width: 13, height: 4.5 },
+    { label: 'left', top: 76.5, left: 20, width: 12, height: 4.5 },
+    { label: '5', top: 78, left: 43.5, width: 14, height: 4.5 },
+    { label: 'right', top: 76.5, left: 67, width: 14, height: 4.5 },
+    { label: '7', top: 83.5, left: 20, width: 13, height: 4.5 },
+    { label: 'down', top: 85, left: 43, width: 16, height: 4.5 },
+    { label: '9', top: 83, left: 67, width: 14, height: 5 },
+    { label: '*', top: 90.5, left: 20, width: 16, height: 4.5 },
+    { label: '0', top: 92, left: 42, width: 17.5, height: 4.5 },
+    { label: '#', top: 90, left: 67, width: 13, height: 5 },
+    { label: 'home', top: 55, left: 35, width: 31, height: 3 },
   ];
 
   useEffect(() => {

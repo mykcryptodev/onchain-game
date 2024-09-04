@@ -244,6 +244,19 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
   return (
     <div className="flex min-h-screen flex-col items-center">
       <NokiaWrapper
+        onButtonPress={(btnLabel) => {
+          const keyMap = {
+            down: "ArrowDown",
+            up: "ArrowUp",
+            left: "ArrowLeft",
+            right: "ArrowRight",
+          };
+
+          const keydownEvent = new KeyboardEvent("keydown", {
+            key: keyMap[btnLabel as "down" | "up" | "left" | "right"],
+          });
+          window.dispatchEvent(keydownEvent);
+        }}
         screenWidth={GRID_SIZE * CELL_SIZE}
         screenHeight={GRID_SIZE * CELL_SIZE}
       >
