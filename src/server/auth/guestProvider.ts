@@ -16,6 +16,16 @@ export const GuestProvider = (): NextAuthOptions["providers"][number] => ({
       },
     });
 
+    // create a guest account for this user
+    await db.account.create({
+      data: {
+        userId: user.id,
+        type: "guest",
+        provider: "guest",
+        providerAccountId: user.id,
+      },
+    });
+
     return {
       id: user.id,
       name: user.name,

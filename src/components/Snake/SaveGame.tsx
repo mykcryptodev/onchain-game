@@ -6,6 +6,7 @@ type Props = {
 }
 export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
   const { data: sessionData } = useSession();
+  console.log({ 'saveGameDataSesh': sessionData });
 
   if (!sessionData?.user) return null;
 

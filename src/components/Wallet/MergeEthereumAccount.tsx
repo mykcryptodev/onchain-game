@@ -1,19 +1,14 @@
-import { getCsrfToken, useSession } from 'next-auth/react';
+import { getCsrfToken, signIn, useSession } from 'next-auth/react';
 import { type FC, useState } from 'react';
 import { SiweMessage } from 'siwe';
 import { useAccount, useSignMessage } from 'wagmi';
-
-import { APP_NAME } from '~/constants';
-import { api } from '~/utils/api';
 
 const MergeEthereumAccount: FC = () => {
   const { data: sessionData } = useSession();
   const { signMessageAsync } = useSignMessage();
   const account = useAccount();
   const [isLinking, setIsLinking] = useState(false);
-  const { mutateAsync: linkEthereumAddress } = api.user.linkEthereumAddress.useMutation();
 
-  console.log('game sesh', sessionData);
   const handleLinkAddress = async () => {
     if (!account.address || !sessionData?.user) return;
     setIsLinking(true);
@@ -27,13 +22,20 @@ const MergeEthereumAccount: FC = () => {
         chainId: account.chainId,
         uri: document.location.origin,
         version: '1',
-        statement: `Link Ethereum account with ${APP_NAME}`,
+        statement: `Link User: ${sessionData.user.id}`,
         nonce,
       }).prepareMessage();
 
       const signature = await signMessageAsync({ message });
 
-      await linkEthereumAddress({ message, signature, address: account.address });
+      // await linkEthereumAddress({ message, signature, address: account.address });
+      const response = await signIn("ethereum", {
+        message,
+        signature,
+        address: account.address,
+        redirect: false,
+      });
+      console.log('response:', response);
     } catch (e) {
       console.error('Error linking address:', e);
     } finally {

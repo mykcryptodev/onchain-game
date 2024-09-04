@@ -66,6 +66,15 @@ export const authOptions: NextAuthOptions = {
             address: credentials.address,
           },
         });
+        // Create a new account for the user
+        await db.account.create({
+          data: {
+            userId: user.id,
+            type: "ethereum",
+            provider: "ethereum",
+            providerAccountId: credentials.address,
+          },
+        });
         return user;
       },
     }),
