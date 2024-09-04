@@ -251,6 +251,9 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
     <div className="flex min-h-screen flex-col items-center">
       <NokiaWrapper
         onButtonPress={(btnLabel) => {
+          if (btnLabel === 'home') {
+            return document.getElementById('base_color_modal')?.click();
+          }
           const keyMap = {
             down: "ArrowDown",
             up: "ArrowUp",
