@@ -27,55 +27,57 @@ export default function ChooseSnakeColors({
 
   return (
     <div className="flex flex-wrap gap-2 items-center">
-      {userColors.length > 0 ? (
-        userColors.map((color) => (
-          <div key={color} className="flex gap-2">
-            <button
-              onClick={() => {
-                posthog.capture('change snake color', { 
-                  userAddress: sessionData?.user.address,
-                  userId: sessionData?.user.id,
-                });
-                snakeColorUpdater(color);
-              }}
-              className={`badge badge-lg ${color === selectedColor ? 'badge-primary' : 'badge-outline'}`}
+      <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
+        {userColors.length > 0 ? (
+          userColors.map((color) => (
+            <div key={color} className="flex">
+              <button
+                onClick={() => {
+                  posthog.capture('change snake color', { 
+                    userAddress: sessionData?.user.address,
+                    userId: sessionData?.user.id,
+                  });
+                  snakeColorUpdater(color);
+                }}
+                className={`badge badge-lg ${color === selectedColor ? 'badge-primary' : 'badge-outline'}`}
+              >
+                <div 
+                  className="rounded-full h-3.5 w-3.5 mr-2"
+                  style={{ backgroundColor: color }}
+                />
+                {color}
+              </button>
+            </div>
+          ))
+        ) : (
+          <div className="text-sm p-4 bg-base-200 rounded-lg">
+            Colors you mint on&nbsp;
+            <Link
+              href="https://basecolors.com"
+              rel="noopener noreferrer"
+              target="_blank"
+              className="btn-link"
             >
-              <div 
-                className="rounded-full h-3.5 w-3.5 mr-2"
-                style={{ backgroundColor: color }}
-              />
-              {color}
-            </button>
+              BaseColors.com
+            </Link>
+            &nbsp;will show up here
           </div>
-        ))
-      ) : (
-        <div className="text-sm p-4 bg-base-200 rounded-lg">
-          Colors you mint on&nbsp;
-          <Link
-            href="https://basecolors.com"
-            rel="noopener noreferrer"
-            target="_blank"
-            className="btn-link"
-          >
-            BaseColors.com
-          </Link>
-          &nbsp;will show up here
-        </div>
-      )}
-        <Link
-          href="https://basecolors.com"
-          rel="noopener noreferrer"
-          target="_blank"
-          className="text-xs flex items-center gap-1 w-full justify-end pt-4"
-        >
-          <Image
-            src="/images/basecolors.png"
-            alt="BaseColors"
-            width={14}
-            height={14}
-          />
-          BaseColors.com
-        </Link>
+        )}
+      </div>
+      <Link
+        href="https://basecolors.com"
+        rel="noopener noreferrer"
+        target="_blank"
+        className="text-xs flex items-center gap-1 w-full justify-end pt-4"
+      >
+        <Image
+          src="/images/basecolors.png"
+          alt="BaseColors"
+          width={14}
+          height={14}
+        />
+        BaseColors.com
+      </Link>
     </div>
   );
 }
