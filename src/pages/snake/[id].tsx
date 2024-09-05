@@ -12,7 +12,7 @@ import { api } from "~/utils/api";
 
 const GRID_SIZE = 20;
 const CELL_SIZE = 20;
-const INITIAL_SNAKE: { x: number; y: number }[] = [{ x: 10, y: 10 }];
+const INITIAL_SNAKE: { x: number; y: number }[] = [{ x: 0, y: 10 }];
 const INITIAL_DIRECTION = { x: 1, y: 0 };
 const INITIAL_FOOD = { x: 15, y: 15 };
 
