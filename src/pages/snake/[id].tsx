@@ -282,6 +282,9 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
 
   console.log({ userColors });
 
+  let voicemailAudio: HTMLAudioElement | null = null;
+
+
   const StartGame: FC = () => {
     return (
       <div className="w-full h-full grid place-content-center">
@@ -329,12 +332,15 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
             return document.getElementById('base_color_modal')?.click();
           }
           if (btnLabel === 'voicemail') {
-            const prefixAudio = new Audio('/audio/prefix.wav');
-            const voicemailAudio = new Audio('/audio/voicemail.mp3');
-            prefixAudio.addEventListener('ended', () => {
+            if (!voicemailAudio) {
+              voicemailAudio = new Audio('/audio/voicemail.mp3');
+            }
+        
+            if (voicemailAudio.paused) {
               void voicemailAudio.play();
-            });
-            void prefixAudio.play();
+            } else {
+              voicemailAudio.pause();
+            }
           }
           const keyMap = {
             down: "ArrowDown",
