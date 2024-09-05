@@ -9,7 +9,7 @@ type Props = {
   className?: string;
   btnLabel?: string;
   onClick?: () => void;
-}
+};
 const CreateSnakeGame: FC<Props> = ({ btnLabel, onClick, className }) => {
   const { data: sessionData } = useSession();
   const router = useRouter();
@@ -17,13 +17,13 @@ const CreateSnakeGame: FC<Props> = ({ btnLabel, onClick, className }) => {
 
   const handleCreate = async () => {
     // capture the click event
-    posthog.capture('create game', { 
+    posthog.capture("create game", {
       userAddress: sessionData?.user.address,
       userId: sessionData?.user.id,
     });
     const { id } = await create();
-    void router.push(`/snake/${id}`);
-  }
+    void router.push(`/snake/${id}`, undefined, { scroll: false });
+  };
 
   return (
     <button
