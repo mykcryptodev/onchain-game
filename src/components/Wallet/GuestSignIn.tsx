@@ -1,4 +1,5 @@
 import { signIn, useSession } from 'next-auth/react';
+import posthog from 'posthog-js';
 import React, { type FC, useState } from 'react';
 
 const SignInGuest: FC = () => {
@@ -6,6 +7,7 @@ const SignInGuest: FC = () => {
   const [isSigningIn, setIsSigningIn] = useState<boolean>(false);
  
   const promptToSign = async () => {
+    posthog.capture('sign in as guest');
     setIsSigningIn(true);
     
     try {

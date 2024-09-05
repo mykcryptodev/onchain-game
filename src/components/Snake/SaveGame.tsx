@@ -1,4 +1,5 @@
 import { useSession } from "next-auth/react";
+import posthog from "posthog-js";
 import { type FC,useEffect,useState } from "react";
 import { useAccount } from "wagmi";
 
@@ -23,6 +24,12 @@ export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
   }, [address]);
 
   const handleSave = async () => {
+    // capture the click event
+    posthog.capture('save game', { 
+      userAddress: sessionData?.user.address,
+      userId: sessionData?.user.id,
+      gameId,
+    });
     await saveGame({ id: gameId });
   }
 

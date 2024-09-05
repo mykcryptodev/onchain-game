@@ -1,6 +1,7 @@
 import { type NextPage } from "next";
 import { useRouter } from "next/router";
 import { signIn, useSession } from "next-auth/react";
+import posthog from "posthog-js";
 
 import CreateGame from "~/components/Snake/Create";
 import SignInWithEthereum from "~/components/Wallet/SignIn";
@@ -10,6 +11,7 @@ const CreateSnakeGame: NextPage = () => {
   const { data: sessionData } = useSession();
 
   const handlePlayAsGuest = async () => {
+    posthog.capture('play as guest');
     if (!sessionData?.user) {
       return await signIn("guest", { callbackUrl: "/snake/play-guest" });
     }
