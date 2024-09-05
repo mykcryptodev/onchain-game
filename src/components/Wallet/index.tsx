@@ -16,6 +16,7 @@ import {
   WalletDropdownLink,
 } from '@coinbase/onchainkit/wallet';
 import { signOut, useSession } from 'next-auth/react';
+import posthog from 'posthog-js';
 import { useEffect } from 'react';
 import { defineChain } from 'thirdweb';
 import { viemAdapter } from "thirdweb/adapters/viem";
@@ -62,6 +63,11 @@ export function Wallet({ btnLabel, withWalletAggregator }: Props) {
   useEffect(() => {
     const setActive = async () => {
       if (walletClient) {
+        posthog.capture('connected wallet', {
+          chainId: await walletClient.getChainId(),
+          wallet: walletClient.constructor.name,
+          address: walletClient.account.address,
+        });
         // adapt the walletClient to a thirdweb account
         const adaptedAccount = viemAdapter.walletClient.fromViem({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any

@@ -1,5 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import posthog from "posthog-js";
 
 type ChooseColorsProps = {
   userColors: string[];
@@ -14,6 +16,7 @@ export default function ChooseSnakeColors({
   selectedColor,
   snakeColorUpdater,
 }: ChooseColorsProps) {
+  const { data: sessionData } = useSession();
   if (isLoading) {
     return (
       <div className="flex flex-col items-center">
@@ -28,7 +31,13 @@ export default function ChooseSnakeColors({
         userColors.map((color) => (
           <div key={color} className="flex gap-2">
             <button
-              onClick={() => snakeColorUpdater(color)}
+              onClick={() => {
+                posthog.capture('change snake color', { 
+                  userAddress: sessionData?.user.address,
+                  userId: sessionData?.user.id,
+                });
+                snakeColorUpdater(color);
+              }}
               className={`badge badge-lg ${color === selectedColor ? 'badge-primary' : 'badge-outline'}`}
             >
               <div 

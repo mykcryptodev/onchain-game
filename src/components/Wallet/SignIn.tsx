@@ -1,4 +1,5 @@
 import { getCsrfToken, signIn, useSession } from 'next-auth/react';
+import posthog from 'posthog-js';
 import React, { type FC, useState } from 'react';
 import { SiweMessage } from 'siwe';
 import { useAccount, useSignMessage } from 'wagmi';
@@ -17,6 +18,10 @@ const SignInWithEthereum: FC<Props> = ({ btnLabel }) => {
   const promptToSign = async () => {
     if (!account.address) return;
     setIsSigningIn(true);
+    posthog.capture('sign in with ethereum', {
+      userId: sessionData?.user?.id,
+      userAddress: sessionData?.user?.address,
+    });
     
     try {
       const nonce = await getCsrfToken();

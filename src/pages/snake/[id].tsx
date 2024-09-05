@@ -1,4 +1,6 @@
 import { type GetServerSideProps, type NextPage } from "next";
+import { useSession } from "next-auth/react";
+import posthog from "posthog-js";
 import React, { type FC, useCallback, useEffect, useRef, useState } from "react";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
@@ -34,6 +36,7 @@ interface Props {
 }
 
 const SnakeGame: NextPage<Props> = ({ id }) => {
+  const { data: sessionData } = useSession();
   const { address } = useAccount();
   const { data: userColorsData, isLoading: loadingUserColors } =
     api.nfts.getOwnedBaseColors.useQuery(
@@ -366,7 +369,13 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
                 <p className="text-2xl font-bold text-red-600">Game Over!</p>
                 <CreateSnakeGame
                   btnLabel="Play Again"
-                  onClick={() => void resetGame()}
+                  onClick={() => {
+                    posthog.capture('play again', { 
+                      userAddress: sessionData?.user.address,
+                      userId: sessionData?.user.id,
+                    });
+                    void resetGame();
+                  }}
                 />
                 <SaveSnakeGame gameId={id} />
               </div>
