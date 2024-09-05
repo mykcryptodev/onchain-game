@@ -25,7 +25,7 @@ export const Layout: FC<Props> = ({ children }) => {
           </h1>
         </Link>
         <div className="flex items-center gap-2">
-          <Wallet />
+          <Wallet withWalletAggregator />
         </div>
       </div>
       <div className="container mx-auto">
