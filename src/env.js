@@ -24,6 +24,9 @@ export const env = createEnv({
     ),
     THIRDWEB_SECRET_KEY: z.string().optional(),
     SIMPLEHASH_API_KEY: z.string(),
+    // Add these new variables
+    PINATA_API_KEY: z.string(),
+    PINATA_API_SECRET: z.string(),
   },
 
   /**
@@ -51,6 +54,9 @@ export const env = createEnv({
     NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
     THIRDWEB_SECRET_KEY: process.env.THIRDWEB_SECRET_KEY,
     SIMPLEHASH_API_KEY: process.env.SIMPLEHASH_API_KEY,
+    // Add these new mappings
+    PINATA_API_KEY: process.env.PINATA_API_KEY,
+    PINATA_API_SECRET: process.env.PINATA_API_SECRET,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

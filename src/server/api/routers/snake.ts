@@ -90,7 +90,46 @@ export const snakeRouter = createTRPCRouter({
         throw new Error("You are not the player of this game");
       }
 
+      // Create a JSON object with the game state
+      const gameState = {
+        id: game.id,
+        userId: game.userId,
+        score: game.score,
+        history: game.history
+      }
+
+      try {
+        // Upload the game state to IPFS via Pinata
+        const result = await pinata.pinJSONToIPFS(gameState)
+
+        // Update the game record with the IPFS hash
+        const updatedGame = await ctx.db.snakeGame.update({
+          where: { id: input.id },
+          data: {
+            ipfsHash: result.IpfsHash,
+          },
+        })
+
+        return {
+          success: true,
+          ipfsHash: result.IpfsHash,
+          game: updatedGame,
+        }
+      } catch (error) {
+        console.error("Error saving game to IPFS:", error)
+        throw new Error("Failed to save game to IPFS")
+      }
+    }),
+
       // TODO: publish the results onchain
+      // Implement ethers.js to interact with the contract
+      // add the contract ABI to the server 
+      // create the contract object with the contract address and the contract ABI
+      // add the private key to the server environment variables 
+      // create a function to call submitGameResult using the server private key
+      // get the address of the current user from the connected wallet 
+      // call the submitGameResult function with the user address game results, the IPFS CID, and the timestamp
+
       return true;
     }),
 });
