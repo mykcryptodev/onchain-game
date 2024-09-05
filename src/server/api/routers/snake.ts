@@ -6,7 +6,7 @@ import { getLeaderboard } from "~/thirdweb/84532/0x5decd7c00316f7b9b72c8c2d8b4e2
 const pinata = new pinataSDK(env.PINATA_API_KEY, env.PINATA_API_SECRET)
 
 import { getContract } from "thirdweb";
-import { baseSepolia } from "thirdweb/chains";
+import { base } from "thirdweb/chains";
 
 import { thirdwebClient } from "~/config/thirdweb";
 import { SNAKE_LEADERBOARD } from "~/constants/addresses";
@@ -47,7 +47,7 @@ export const snakeRouter = createTRPCRouter({
         contract: getContract({
           client: thirdwebClient,
           address: SNAKE_LEADERBOARD,
-          chain: baseSepolia,
+          chain: base,
         }),
       });
       // turn all of the bigints into strings
@@ -149,7 +149,7 @@ export const snakeRouter = createTRPCRouter({
         const timestamp = Math.floor(Date.now() / 1000) // Current timestamp in seconds
 
         void fetch(
-          `${ENGINE_URL}/contract/${baseSepolia.id}/${SNAKE_LEADERBOARD}/write`,
+          `${ENGINE_URL}/contract/${base.id}/${SNAKE_LEADERBOARD}/write`,
           {
             method: "POST",
             headers: {
