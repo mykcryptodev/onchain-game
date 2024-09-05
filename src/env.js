@@ -27,9 +27,7 @@ export const env = createEnv({
     // Add these new variables
     PINATA_API_KEY: z.string(),
     PINATA_API_SECRET: z.string(),
-    BASE_RPC_URL: z.string().url(),
     BASE_PRIVATE_KEY: z.string(),
-    SNAKE_GAME_CONTRACT_ADDRESS_BASE: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
   },
 
   /**
@@ -60,9 +58,7 @@ export const env = createEnv({
     // Add these new mappings
     PINATA_API_KEY: process.env.PINATA_API_KEY,
     PINATA_API_SECRET: process.env.PINATA_API_SECRET,
-    BASE_RPC_URL: process.env.BASE_RPC_URL,
     BASE_PRIVATE_KEY: process.env.BASE_PRIVATE_KEY,
-    SNAKE_GAME_CONTRACT_ADDRESS_BASE: process.env.SNAKE_GAME_CONTRACT_ADDRESS_BASE,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
