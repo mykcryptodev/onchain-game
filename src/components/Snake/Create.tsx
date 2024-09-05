@@ -6,10 +6,11 @@ import { type FC } from "react";
 import { api } from "~/utils/api";
 
 type Props = {
+  className?: string;
   btnLabel?: string;
   onClick?: () => void;
 }
-const CreateSnakeGame: FC<Props> = ({ btnLabel, onClick }) => {
+const CreateSnakeGame: FC<Props> = ({ btnLabel, onClick, className }) => {
   const { data: sessionData } = useSession();
   const router = useRouter();
   const { mutateAsync: create } = api.snake.create.useMutation();
@@ -26,7 +27,7 @@ const CreateSnakeGame: FC<Props> = ({ btnLabel, onClick }) => {
 
   return (
     <button
-      className="btn btn-primary"
+      className={`btn btn-primary ${className}`}
       onClick={() => {
         void onClick?.();
         void handleCreate();
