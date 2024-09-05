@@ -10,9 +10,8 @@ import { api } from "~/utils/api";
 
 type Props = {
   gameId: string;
-  onGameSaved: () => void;
 }
-export const SaveSnakeGame: FC<Props> = ({ gameId, onGameSaved }) => {
+export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
   const { address } = useAccount();
   const { data: sessionData } = useSession();
   const tabs = ['Sign In', 'Save Score'] as readonly string[];
@@ -35,7 +34,6 @@ export const SaveSnakeGame: FC<Props> = ({ gameId, onGameSaved }) => {
     setIsLoading(true);
     try {
       await saveGame({ id: gameId });
-      onGameSaved();
     } catch (e) {
       console.error('Error saving game:', e);
     } finally {

@@ -1,6 +1,6 @@
 import { type GetServerSideProps, type NextPage } from "next";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
+import { useSession } from "next-auth/react";
 import posthog from "posthog-js";
 import React, { type FC, useCallback, useEffect, useRef, useState } from "react";
 import { zeroAddress } from "viem";
@@ -391,18 +391,10 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
               <div className="flex flex-col items-center justify-center w-full gap-2">
                 <p className="text-2xl font-bold text-red-600">Game Over!</p>
                 <Leaderboard 
-                  key={leaderboardKey}
                   className="font-mono overflow-y-scroll max-h-[155px] w-full px-4"
                 />
                 <div className="grid grid-rows-2 gap-2">
-                  <SaveSnakeGame 
-                    gameId={id}
-                    onGameSaved={() => {
-                      setTimeout(() => {
-                        setLeaderboardKey(Date.now().toString());
-                      }, 4500);
-                    }}
-                  />
+                  <SaveSnakeGame gameId={id} />
                   <CreateSnakeGame
                     btnLabel="Play Again"
                     onClick={() => {

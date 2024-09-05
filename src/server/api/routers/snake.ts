@@ -2,7 +2,7 @@ import pinataSDK from "@pinata/sdk";
 import { z } from "zod";
 
 import { env } from "~/env.js"
-import { submitGameResult } from "~/thirdweb/84532/0x5decd7c00316f7b9b72c8c2d8b4e2d7e5a886259";
+import { getLeaderboard, submitGameResult } from "~/thirdweb/84532/0x5decd7c00316f7b9b72c8c2d8b4e2d7e5a886259";
 const pinata = new pinataSDK(env.PINATA_API_KEY, env.PINATA_API_SECRET)
 
 import { getContract, sendTransaction } from "thirdweb";
@@ -14,6 +14,7 @@ import { SNAKE_LEADERBOARD } from "~/constants/addresses";
 import {
   createTRPCRouter,
   protectedProcedure,
+  publicProcedure,
 } from "~/server/api/trpc";
 
 const ENGINE_URL = `https://engine-production-3357.up.railway.app`;
@@ -40,6 +41,25 @@ export const snakeRouter = createTRPCRouter({
           score: 0,
         },
       });
+    }),
+  getLeaderboard: publicProcedure
+    .query(async () => {
+      const onchainData = await getLeaderboard({
+        contract: getContract({
+          client: thirdwebClient,
+          address: SNAKE_LEADERBOARD,
+          chain: baseSepolia,
+        }),
+      });
+      // turn all of the bigints into strings
+      onchainData.map((entry) => {
+        return {
+          ...entry,
+          score: entry.score.toString(),
+          timestamp: entry.timestamp.toString(),
+        }
+      });
+      return [...onchainData];
     }),
   recordMove: protectedProcedure
     .input(z.object({
@@ -129,7 +149,7 @@ export const snakeRouter = createTRPCRouter({
 
         const timestamp = Math.floor(Date.now() / 1000) // Current timestamp in seconds
 
-        const resp = void fetch(
+        void fetch(
           `${ENGINE_URL}/contract/${baseSepolia.id}/${SNAKE_LEADERBOARD}/write`,
           {
             method: "POST",
@@ -149,27 +169,6 @@ export const snakeRouter = createTRPCRouter({
             }),
           },
         );
-        console.log(JSON.stringify(resp));
-        // const submitGameResultTx = submitGameResult({
-        //   contract: getContract({
-        //     client: thirdwebClient,
-        //     address: SNAKE_LEADERBOARD,
-        //     chain: baseSepolia,
-        //   }),
-        //   player: userAddress,
-        //   score: BigInt(game.score),
-        //   ipfsCid: ipfsUri.replace('ipfs://', ''),
-        //   timestamp: BigInt(timestamp),
-        // });
-
-        // const tx = await sendTransaction({
-        //   transaction: submitGameResultTx,
-        //   account: privateKeyToAccount({
-        //     client: thirdwebClient,
-        //     privateKey: env.BASE_PRIVATE_KEY,
-        //   }),
-        // });
-
         return {
           success: true,
           ipfsUri,
