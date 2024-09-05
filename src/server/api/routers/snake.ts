@@ -1,15 +1,20 @@
+import pinataSDK from "@pinata/sdk";
 import { z } from "zod";
 
-import pinataSDK from "@pinata/sdk";
 import { env } from "~/env.js"
+import { submitGameResult } from "~/thirdweb/84532/0x5decd7c00316f7b9b72c8c2d8b4e2d7e5a886259";
 const pinata = new pinataSDK(env.PINATA_API_KEY, env.PINATA_API_SECRET)
 
+import { getContract, sendTransaction } from "thirdweb";
+import { baseSepolia } from "thirdweb/chains";
+import { privateKeyToAccount } from "thirdweb/wallets";
+
+import { thirdwebClient } from "~/config/thirdweb";
+import { SNAKE_LEADERBOARD } from "~/constants/addresses";
 import {
   createTRPCRouter,
   protectedProcedure,
 } from "~/server/api/trpc";
-
-import { submitGameResult } from '~/utils/contractHelper';
 
 type Action = {
   label: "up" | "down" | "left" | "right" | "eat" | "died";
@@ -122,20 +127,30 @@ export const snakeRouter = createTRPCRouter({
 
         const timestamp = Math.floor(Date.now() / 1000) // Current timestamp in seconds
 
-        const tx = await submitGameResult(
-          userAddress,
-          game.score,
-          ipfsUri.replace('ipfs://', ''),
-          timestamp
-        )
+        const submitGameResultTx = submitGameResult({
+          contract: getContract({
+            client: thirdwebClient,
+            address: SNAKE_LEADERBOARD,
+            chain: baseSepolia,
+          }),
+          player: userAddress,
+          score: BigInt(game.score),
+          ipfsCid: ipfsUri.replace('ipfs://', ''),
+          timestamp: BigInt(timestamp),
+        });
 
-        // Wait for the transaction to be mined
-        await tx.wait()
+        const tx = await sendTransaction({
+          transaction: submitGameResultTx,
+          account: privateKeyToAccount({
+            client: thirdwebClient,
+            privateKey: env.BASE_PRIVATE_KEY,
+          }),
+        });
 
         return {
           success: true,
           ipfsUri,
-          transactionHash: tx.hash,
+          transactionHash: tx.transactionHash,
         }
       } catch (error) {
         console.error("Error submitting game result to blockchain:", error)
