@@ -14,14 +14,14 @@ type Props = {
 export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
   const { address } = useAccount();
   const { data: sessionData } = useSession();
-  const tabs = ['Sign In', 'Save Score'] as readonly string[];
+  const tabs = ['Connect Wallet', 'Verify Wallet'] as readonly string[];
   const [activeTab, setActiveTab] = useState<string>(tabs[0]!);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { mutateAsync: saveGame } = api.snake.saveGame.useMutation();
 
   useEffect(() => {
     if (!address) return;
-    setActiveTab('Save Score');
+    setActiveTab('Verify Wallet');
   }, [address]);
 
   const handleSave = async () => {
@@ -55,7 +55,7 @@ export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
           <div className="modal" role="dialog">
             <div className="modal-box">
               <h3 className="font-bold text-xl mb-4">Add score to leaderboard</h3>
-              <p className="text-center">Connect your wallet to add your score</p>
+              <p className="text-center max-w-xs mx-auto">A one-time verification of your wallet is required to publish your score</p>
               <label htmlFor="connect_modal" className="absolute top-4 right-4 btn btn-ghost btn-circle btn-xs">
                 &times;
               </label>
@@ -73,15 +73,15 @@ export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
                   </li>
                 ))}
               </ul>
-              {activeTab === 'Sign In' && (
-                <div className="w-full justify-center flex">
+              {activeTab === 'Connect Wallet' && (
+                <div className="w-full justify-center flex gap-2">
                   <Wallet btnLabel="Create Wallet" withWalletAggregator={false} />
                   <Wallet btnLabel="Connect Wallet" withWalletAggregator={true} />
                 </div>
               )}
-              {activeTab === 'Save Score' && (
+              {activeTab === 'Verify Wallet' && (
                 <div className="w-full justify-center flex">
-                  <MergeEthereumAccount btnLabel="Save Score" />
+                  <MergeEthereumAccount btnLabel="Verify Wallet" />
                 </div>
               )}
             </div>
