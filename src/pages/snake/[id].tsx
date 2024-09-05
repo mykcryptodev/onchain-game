@@ -66,6 +66,12 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
   const { data: sessionData } = useSession();
   const { address } = useAccount();
 
+  useEffect(() => {
+    if (!sessionData?.user) {
+      void router.push('/');
+    }
+  }, [router, sessionData]);
+
   const { data: userColorsData, isLoading: loadingUserColors } =
     api.nfts.getOwnedBaseColors.useQuery(
       {

@@ -17,6 +17,7 @@ export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
   const tabs = ['Connect Wallet', 'Verify Wallet'] as readonly string[];
   const [activeTab, setActiveTab] = useState<string>(tabs[0]!);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [hasSaved, setHasSaved] = useState<boolean>(false);
   const { mutateAsync: saveGame } = api.snake.saveGame.useMutation();
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
     setIsLoading(true);
     try {
       await saveGame({ id: gameId });
+      setHasSaved(true);
     } catch (e) {
       console.error('Error saving game:', e);
     } finally {
@@ -93,6 +95,20 @@ export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
     return (
       <MergeEthereumAccount btnLabel="Save game with your face" />
     )
+  }
+
+  if (hasSaved) {
+    return (
+      <div className="flex flex-col">
+        <button 
+          className="btn"
+          disabled
+        >
+          Score saved!
+        </button>
+        <span className="text-xs opacity-50">Updates can take a few minutes</span>
+      </div>
+    );
   }
 
   return (
