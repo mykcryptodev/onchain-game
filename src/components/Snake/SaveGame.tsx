@@ -44,8 +44,6 @@ export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
     }
   }
 
-  if (!sessionData?.user) return null;
-
   if (!sessionData?.user.address) {
     return (
       <>
@@ -106,7 +104,7 @@ export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
       {isLoading && (
         <div className="loading loading-spinner" />
       )}
-      Save Game
+      Add score to leaderboard
     </button>
   );
 };

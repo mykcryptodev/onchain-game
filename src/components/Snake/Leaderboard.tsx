@@ -15,7 +15,7 @@ export const Leaderboard: FC<Props> = ({ className }) => {
   });
 
   if (isLoading) return (
-    <div className="loading loading-spinner" />
+    <div className="loading loading-spinner mx-auto" />
   );
 
   return (
