@@ -1,28 +1,21 @@
 import { getCsrfToken, signIn, useSession } from 'next-auth/react';
-import posthog from 'posthog-js';
-import React, { type FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import { SiweMessage } from 'siwe';
 import { useAccount, useSignMessage } from 'wagmi';
-
-import { APP_NAME } from '~/constants';
 
 type Props = {
   btnLabel?: string;
 }
-const SignInWithEthereum: FC<Props> = ({ btnLabel }) => {
+const MergeEthereumAccount: FC<Props> = ({ btnLabel }) => {
   const { data: sessionData } = useSession();
   const { signMessageAsync } = useSignMessage();
   const account = useAccount();
-  const [isSigningIn, setIsSigningIn] = useState<boolean>(false);
- 
-  const promptToSign = async () => {
-    if (!account.address) return;
-    setIsSigningIn(true);
-    posthog.capture('sign in with ethereum', {
-      userId: sessionData?.user?.id,
-      userAddress: sessionData?.user?.address,
-    });
-    
+  const [isLinking, setIsLinking] = useState(false);
+
+  const handleLinkAddress = async () => {
+    if (!account.address || !sessionData?.user) return;
+    setIsLinking(true);
+
     try {
       const nonce = await getCsrfToken();
 
@@ -32,41 +25,41 @@ const SignInWithEthereum: FC<Props> = ({ btnLabel }) => {
         chainId: account.chainId,
         uri: document.location.origin,
         version: '1',
-        statement: `Sign into ${APP_NAME}`,
+        statement: `Link User: ${sessionData.user.id}`,
         nonce,
       }).prepareMessage();
 
       const signature = await signMessageAsync({ message });
 
+      // await linkEthereumAddress({ message, signature, address: account.address });
       const response = await signIn("ethereum", {
         message,
         signature,
         address: account.address,
         redirect: false,
       });
-
-      if (response?.error) {
-        throw new Error(response.error);
-      }
+      console.log('response:', response);
     } catch (e) {
-      console.error('Error signing in:', e);
+      console.error('Error linking address:', e);
     } finally {
-      setIsSigningIn(false);
+      setIsLinking(false);
     }
   };
-  if (sessionData?.user) return null;
+
+  if (!sessionData?.user) return null;
+
   return (
-    <button 
-      onClick={promptToSign}
+    <button
+      onClick={handleLinkAddress}
       className="btn"
-      disabled={isSigningIn}
+      disabled={isLinking}
     >
-      {isSigningIn && (
+      {isLinking && (
         <div className="loading loading-spinner" />
       )}
-      {btnLabel ?? 'Sign In with Ethereum'}
+      {btnLabel ?? 'Merge Ethereum Account'}
     </button>
   );
-}
+};
 
-export default SignInWithEthereum;
+export default MergeEthereumAccount;

@@ -25,8 +25,6 @@ const config = {
       },
     ],
   },
-  transpilePackages: ["geist"],
-  ignorePatterns: ['solidity/**/*'],
 };
 
 export default config;

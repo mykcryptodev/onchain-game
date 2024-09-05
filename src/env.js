@@ -23,6 +23,13 @@ export const env = createEnv({
       process.env.VERCEL ? z.string() : z.string().url()
     ),
     THIRDWEB_SECRET_KEY: z.string().optional(),
+    SIMPLEHASH_API_KEY: z.string(),
+    // Add these new variables
+    PINATA_API_KEY: z.string(),
+    PINATA_API_SECRET: z.string(),
+    BASE_PRIVATE_KEY: z.string(),
+    ENGINE_ACCESS_TOKEN: z.string(),
+    ENGINE_WALLET_ADDRESS: z.string(),
   },
 
   /**
@@ -34,6 +41,8 @@ export const env = createEnv({
     NEXT_PUBLIC_CDP_API_KEY: z.string(),
     NEXT_PUBLIC_THIRDWEB_CLIENT_ID: z.string(),
     NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: z.string(),
+    NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
+    NEXT_PUBLIC_POSTHOG_HOST: z.string().optional(),
   },
 
   /**
@@ -49,6 +58,14 @@ export const env = createEnv({
     NEXT_PUBLIC_THIRDWEB_CLIENT_ID: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID,
     NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
     THIRDWEB_SECRET_KEY: process.env.THIRDWEB_SECRET_KEY,
+    SIMPLEHASH_API_KEY: process.env.SIMPLEHASH_API_KEY,
+    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+    NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POST,
+    PINATA_API_KEY: process.env.PINATA_API_KEY,
+    PINATA_API_SECRET: process.env.PINATA_API_SECRET,
+    BASE_PRIVATE_KEY: process.env.BASE_PRIVATE_KEY,
+    ENGINE_ACCESS_TOKEN: process.env.ENGINE_ACCESS_TOKEN,
+    ENGINE_WALLET_ADDRESS: process.env.ENGINE_WALLET_ADDRESS,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

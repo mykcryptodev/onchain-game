@@ -8,6 +8,7 @@ import {
 import { type Adapter } from "next-auth/adapters";
 
 import { EthereumProvider } from "~/server/auth/ethereumProvider";
+import { GuestProvider } from "~/server/auth/guestProvider";
 import { db } from "~/server/db";
 
 /**
@@ -57,11 +58,21 @@ export const authOptions: NextAuthOptions = {
   },
   adapter: PrismaAdapter(db) as Adapter,
   providers: [
+    GuestProvider(),
     EthereumProvider({
       async createUser(credentials) {
         const user = await db.user.create({
           data: {
             address: credentials.address,
+          },
+        });
+        // Create a new account for the user
+        await db.account.create({
+          data: {
+            userId: user.id,
+            type: "ethereum",
+            provider: "ethereum",
+            providerAccountId: credentials.address,
           },
         });
         return user;

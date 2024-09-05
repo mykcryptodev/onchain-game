@@ -1,8 +1,8 @@
-import { 
-  arbitrum, 
-  avalanche, 
-  base, 
-  baseSepolia, 
+import {
+  arbitrum,
+  avalanche,
+  base,
+  baseSepolia,
   mainnet,
   optimism,
   polygon,
@@ -18,4 +18,7 @@ export const USDC: ContractAddress = {
   [mainnet.id]: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
   [optimism.id]: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
   [polygon.id]: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
-}
+};
+
+export const BASE_COLORS: `0x${string}` = "0x7bc1c072742d8391817eb4eb2317f98dc72c61db";
+export const SNAKE_LEADERBOARD: `0x${string}` = "0xc0b7a3ee154808249077C49Ef8260bb2b566a93B";

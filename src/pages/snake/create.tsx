@@ -1,13 +1,12 @@
-import Head from "next/head";
+import { type NextPage } from "next";
 import { useRouter } from "next/router";
 import { signIn, useSession } from "next-auth/react";
 import posthog from "posthog-js";
 
 import CreateGame from "~/components/Snake/Create";
 import SignInWithEthereum from "~/components/Wallet/SignIn";
-import { APP_DESCRIPTION, APP_NAME } from "~/constants";
 
-export default function Home() {
+const CreateSnakeGame: NextPage = () => {
   const router = useRouter();
   const { data: sessionData } = useSession();
 
@@ -19,15 +18,8 @@ export default function Home() {
     return router.push("/snake/play-guest");
   };
 
-
   return (
-    <>
-      <Head>
-        <title>{APP_NAME}</title>
-        <meta name="description" content={APP_DESCRIPTION} />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      <div className="flex flex-col items-center justify-center">
+    <div className="flex flex-col items-center justify-center">
       <h1 className="text-4xl font-bold mb-4">Create Snake Game</h1>
       {sessionData?.user.address ? (
         <CreateGame btnLabel="Play Snake" />
@@ -45,6 +37,7 @@ export default function Home() {
         </div>
       )}
     </div>
-    </>
   );
-}
+};
+
+export default CreateSnakeGame;

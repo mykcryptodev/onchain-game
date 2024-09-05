@@ -1,12 +1,8 @@
 import { type User } from "@prisma/client";
-import { createConfig, getPublicClient,http } from "@wagmi/core";
 import type { NextAuthOptions } from "next-auth";
-import {type Address, isAddress, isAddressEqual,verifyMessage,zeroAddress } from 'viem'
-import { base } from "wagmi/chains";
 
-import { SUPPORTED_CHAINS } from "~/constants";
+import verifySignature from "~/helpers/verifySignature";
 import { db } from "~/server/db";
-
 
 type EthereumProviderConfig = {
   createUser: (credentials: { address: string }) => Promise<User>;
@@ -33,6 +29,18 @@ export const EthereumProvider = ({ createUser }: EthereumProviderConfig): NextAu
       );
 
       if (isValid) {
+        // if the credentials.message includes "Link User:", we can extract the user id
+        const linkUserRegex = /Link User: ([a-zA-Z0-9]+)/;
+        // eslint-disable-next-line @typescript-eslint/prefer-regexp-exec
+        const linkUserMatch = credentials.message.match(linkUserRegex);;
+        const linkUser = linkUserMatch ? linkUserMatch[1] : undefined;
+        // user is linking their ethereum address to an existing account
+        if (linkUser) {
+          return linkAddressToExistingUser({
+            existingUserId: linkUser
+          });
+        }
+
         let user = await db.user.findFirst({
           where: { address: credentials.address },
         });
@@ -53,50 +61,73 @@ export const EthereumProvider = ({ createUser }: EthereumProviderConfig): NextAu
       console.error("Error verifying message:", error)
       return null
     }
+
+    async function linkAddressToExistingUser({ existingUserId }: { existingUserId: string }) {
+      if (!credentials?.address) return null;
+
+      // check if the user who is trying to link (the ethereum wallet that signed)
+      // has already linked an ethereum address
+      const ethereumWalletUser = await db.user.findFirst({
+        where: {
+          address: credentials.address,
+        },
+      });
+      // if the user has already linked an ethereum address to another user,
+      // we should remove the link before linking to the new user
+      // 
+      // this can happen if the user signs in as a guest and connects their wallet
+      // then the come back later and try to connect their ethereum wallet to another
+      // guest account. We should remove the link to the first guest account. 
+      
+      // delete the existing link
+      if (ethereumWalletUser) {
+        await db.user.update({
+          where: {
+            id: ethereumWalletUser.id,
+          },
+          data: {
+            address: null,
+          },
+        });
+        // delete the associated ethereum account
+        await db.account.deleteMany({
+          where: {
+            userId: ethereumWalletUser.id,
+            type: "ethereum",
+          },
+        });
+      }
+
+      const existingLinkedUser = await db.user.findUnique({
+        where: {
+          id: existingUserId,
+        },
+      });
+      if (existingLinkedUser?.address) {
+        console.error("User already has an ethereum address linked")
+        return null;
+      }
+      const user = await db.user.update({
+        where: {
+          id: existingUserId,
+        },
+        data: {
+          address: credentials.address,
+        },
+      });
+      await db.account.create({
+        data: {
+          userId: user.id,
+          type: "ethereum",
+          provider: "ethereum",
+          providerAccountId: credentials.address,
+        },
+      });
+
+      return {
+        id: user.id,
+        address: credentials.address,
+      }
+    }
   },
 });
-
-async function verifySignature(
-  message: string,
-  signature: string,
-  address: Address,
-  chainId: number = base.id,
-): Promise<boolean> {
-  // First, try standard EOA signature verification
-  try {
-    return await verifyMessage({
-      message,
-      address,
-      signature: signature as `0x${string}`,
-    });
-  } catch (error) {
-    console.warn("Not an EOA signature, trying EIP-1271...", error);
-  }
-
-  // If EOA verification fails, try EIP-1271 verification
-  if (isAddress(address) && !isAddressEqual(address, zeroAddress)) {
-    try {
-      const chain = SUPPORTED_CHAINS.find(c => c.id === chainId);
-      if (!chain) {
-        throw new Error(`Chain ID ${chainId} not supported`);
-      }
-      const config = createConfig({ 
-        chains: [chain], 
-        transports: { 
-          [chain.id]: http(),
-        }, 
-      });
-      const client = getPublicClient(config);
-      const isValid = await client?.verifyMessage({
-        address, 
-        message, 
-        signature: signature as `0x${string}`,
-      });
-      return isValid ?? false;
-    } catch (error) {
-      console.error("EIP-1271 verification failed:", error)
-    }
-  }
-
-  return false
-}

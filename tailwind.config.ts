@@ -1,15 +1,11 @@
 import daisyui from "daisyui";
 import { type Config } from "tailwindcss";
-import { fontFamily } from "tailwindcss/defaultTheme";
 
 export default {
   content: ["./src/**/*.tsx"],
-  theme: {
-    extend: {
-      fontFamily: {
-        sans: ["var(--font-geist-sans)", ...fontFamily.sans],
-      },
-    },
+  theme: {},
+  daisyui: {
+    themes: ["lofi"],
   },
   plugins: [daisyui],
 } satisfies Config;
