@@ -1,4 +1,3 @@
-import { GeistSans } from "geist/font/sans";
 import { type AppType } from "next/app";
 import { type Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
@@ -31,12 +30,10 @@ const MyApp: AppType<{ session: Session | null }> = ({
     <PostHogProvider client={posthog}>
       <SessionProvider session={session}>
         <OnchainProviders>
-          <div className={GeistSans.className}>
-            <Layout>
-              <Component {...pageProps} />
-            </Layout>
-            <div id="portal" />
-          </div>
+          <Layout>
+            <Component {...pageProps} />
+          </Layout>
+          <div id="portal" />
         </OnchainProviders>
       </SessionProvider>
     </PostHogProvider>

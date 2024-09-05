@@ -25,7 +25,6 @@ const config = {
       },
     ],
   },
-  transpilePackages: ["geist"],
 };
 
 export default config;

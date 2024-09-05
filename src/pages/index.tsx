@@ -1,12 +1,25 @@
 import Head from "next/head";
-import Link from "next/link";
+import { useRouter } from "next/router";
+import { signIn, useSession } from "next-auth/react";
+import posthog from "posthog-js";
 
-import CreateGame from "~/components/Game/Create";
-import SignInGuest from "~/components/Wallet/GuestSignIn";
-import SignIn from "~/components/Wallet/SignIn";
+import CreateGame from "~/components/Snake/Create";
+import SignInWithEthereum from "~/components/Wallet/SignIn";
 import { APP_DESCRIPTION, APP_NAME } from "~/constants";
 
 export default function Home() {
+  const router = useRouter();
+  const { data: sessionData } = useSession();
+
+  const handlePlayAsGuest = async () => {
+    posthog.capture('play as guest');
+    if (!sessionData?.user) {
+      return await signIn("guest", { callbackUrl: "/snake/play-guest" });
+    }
+    return router.push("/snake/play-guest");
+  };
+
+
   return (
     <>
       <Head>
@@ -14,42 +27,24 @@ export default function Home() {
         <meta name="description" content={APP_DESCRIPTION} />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className="flex flex-col justify-center">
-        <div className="container flex flex-col items-center justify-center gap-12 px-4 py-16">
-          <h1 className="text-5xl font-extrabold tracking-tight">
-            {APP_NAME}
-          </h1>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-8">
-            <Link
-              className="flex max-w-xs flex-col gap-4 rounded-xl"
-              href="https://create.t3.gg/en/usage/first-steps"
-              target="_blank"
-            >
-              <h3 className="text-2xl font-bold">First Steps →</h3>
-              <div className="text-lg">
-                Just the basics - Everything you need to know to set up your
-                database and authentication.
-              </div>
-            </Link>
-            <Link
-              className="flex max-w-xs flex-col gap-4 rounded-xl"
-              href="https://create.t3.gg/en/introduction"
-              target="_blank"
-            >
-              <h3 className="text-2xl font-bold">Documentation →</h3>
-              <div className="text-lg">
-                Learn more about Create T3 App, the libraries it uses, and how
-                to deploy it.
-              </div>
-            </Link>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <SignIn />
-            <SignInGuest />
-            <CreateGame />
-          </div>
+      <div className="flex flex-col items-center justify-center">
+      <h1 className="text-4xl font-bold mb-4">Create Snake Game</h1>
+      {sessionData?.user.address ? (
+        <CreateGame btnLabel="Play Snake" />
+      ) : (
+        <div className="flex flex-col gap-2">
+          <button
+            className="btn btn-primary"
+            onClick={handlePlayAsGuest}
+          >
+            Play as Guest
+          </button>
+          <SignInWithEthereum 
+            btnLabel="Sign In"
+          />
         </div>
-      </main>
+      )}
+    </div>
     </>
   );
 }

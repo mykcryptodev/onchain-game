@@ -22,14 +22,9 @@ import { defineChain } from 'thirdweb';
 import { viemAdapter } from "thirdweb/adapters/viem";
 import { useSetActiveWallet } from 'thirdweb/react';
 import { createWalletAdapter } from 'thirdweb/wallets';
-import { useAccount,useChainId,useDisconnect, useSwitchChain, useWalletClient } from "wagmi";
-import { type Chain } from "wagmi/chains";
+import { useAccount,useDisconnect, useSwitchChain, useWalletClient } from "wagmi";
 
-import ChainPicker from '~/components/utils/ChainPicker';
-import Balance from '~/components/Wallet/Balance';
 import { thirdwebClient } from '~/config/thirdweb';
-import { SUPPORTED_CHAINS } from '~/constants';
-import { USDC } from '~/constants/addresses';
 import usePrevious from '~/hooks/usePrevious';
 
 type Props = {
@@ -45,7 +40,6 @@ export function Wallet({ btnLabel, withWalletAggregator }: Props) {
   const { data: walletClient } = useWalletClient();
   const { disconnectAsync } = useDisconnect();
   const { switchChainAsync } = useSwitchChain();
-  const currentChainId = useChainId();
 
   useEffect(() => {
     const addressWasChanged = previousAddress !== address;
@@ -112,29 +106,6 @@ export function Wallet({ btnLabel, withWalletAggregator }: Props) {
       {address && (
         <>
           <WalletComponent>
-            <ConnectWallet withWalletAggregator>
-              <div className="flex items-center gap-1">
-                {address && USDC[currentChainId] !== undefined ? (
-                  <Balance 
-                    className="p-0" 
-                    token={{
-                      address: USDC[currentChainId],
-                      chainId: currentChainId,
-                      decimals: 6,
-                      image: "/images/usdc.png",
-                      name: "USDC",
-                      symbol: "USDC",
-                    }}
-                    chainId={currentChainId}
-                    address={address} 
-                  />
-                ) : (
-                  <span className="text-sm text-gray-400">
-                    {USDC[currentChainId]}
-                  </span>
-                )}
-              </div>
-            </ConnectWallet>
             <WalletDropdown>
               <WalletDropdownFundLink />
               <WalletDropdownLink icon="wallet" href="https://wallet.coinbase.com">
@@ -142,11 +113,6 @@ export function Wallet({ btnLabel, withWalletAggregator }: Props) {
               </WalletDropdownLink>
             </WalletDropdown>
           </WalletComponent>
-          <ChainPicker
-            id="wallet-chain-picker"
-            selectedChain={SUPPORTED_CHAINS.find((chain) => chain.id === currentChainId)}
-            onChainSelected={async(chain: Chain) => await switchChainAsync({ chainId: chain.id })}
-          />
         </>
       )}
     </div>
