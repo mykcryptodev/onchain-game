@@ -21,4 +21,4 @@ export const USDC: ContractAddress = {
 };
 
 export const BASE_COLORS: `0x${string}` = "0x7bc1c072742d8391817eb4eb2317f98dc72c61db";
-export const SNAKE_LEADERBOARD: `0x${string}` = "0x4496f20A9AAEc426D1F060ca8635F1702ac721B4";
+export const SNAKE_LEADERBOARD: `0x${string}` = "0xc0b7a3ee154808249077C49Ef8260bb2b566a93B";

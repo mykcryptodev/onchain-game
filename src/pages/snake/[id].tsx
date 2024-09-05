@@ -1,4 +1,5 @@
 import { type GetServerSideProps, type NextPage } from "next";
+import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
 import posthog from "posthog-js";
 import React, { type FC, useCallback, useEffect, useRef, useState } from "react";
@@ -7,6 +8,7 @@ import { useAccount } from "wagmi";
 
 import ChooseSnakeColors from "~/components/Snake/ChooseSnakeColors";
 import CreateSnakeGame from "~/components/Snake/Create";
+import { Leaderboard } from "~/components/Snake/Leaderboard";
 import SaveSnakeGame from "~/components/Snake/SaveGame";
 import NokiaWrapper from "~/components/utils/NokiaWrapper";
 import { Portal } from "~/components/utils/Portal";
@@ -26,18 +28,44 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   return {
     props: {
-      id,
+      initialGameId: id,
     },
   };
 };
 
 interface Props {
-  id: string;
+  initialGameId: string;
 }
 
-const SnakeGame: NextPage<Props> = ({ id }) => {
+const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
+  const router = useRouter();
+  const [id, setId] = useState<string>(initialGameId);
+  useEffect(() => {
+    // Update gameId when the route changes
+    const handleRouteChange = (url: string) => {
+      const newGameId = url.split('/').pop();
+      if (
+        newGameId !== undefined && 
+        newGameId !== id && 
+        newGameId !== 'play-guest' &&
+        newGameId !== 'create' &&
+        newGameId !== ''
+      ) {
+        setId(newGameId);
+      }
+    };
+
+    router.events.on('routeChangeComplete', handleRouteChange);
+
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChange);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
+
   const { data: sessionData } = useSession();
   const { address } = useAccount();
+
   const { data: userColorsData, isLoading: loadingUserColors } =
     api.nfts.getOwnedBaseColors.useQuery(
       {
@@ -59,6 +87,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
   const [snakeColor, setSnakeColor] = useState<string>("#808080");
   const directionQueue = useRef<Direction[]>([]);
   const [gameStarted, setGameStarted] = useState<boolean>(false);
+  const [leaderboardKey, setLeaderboardKey] = useState<string>(Date.now().toString());
 
   const startGame = () => {
     setGameStarted(true);
@@ -257,23 +286,14 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
   const StartGame: FC = () => {
     return (
       <div className="w-full h-full grid place-content-center">
-        <div className="font-mono text-black flex flex-col gap-2 mx-auto">
+        <div className="font-mono text-black flex flex-col gap-2 mx-auto min-w-[250px] mt-2">
           <div className="font-bold text-center">Controls</div>
-          <div className="flex flex-col sm:hidden w-[75px]">
-            <div className="flex w-full justify-between items-center text-sm">
-              <div>2</div><div>Up</div>
-            </div>
-            <div className="flex w-full justify-between items-center text-sm">
-              <div>8</div><div>Down</div>
-            </div>
-            <div className="flex w-full justify-between items-center text-sm">
-              <div>4</div><div>Left</div>
-            </div>
-            <div className="flex w-full justify-between items-center text-sm">
-              <div>6</div><div>Right</div>
+          <div className="flex flex-col sm:hidden justify-center">
+            <div className="flex w-full justify-between items-center text-sm gap-2">
+              <div>2 = Up,</div><div>8 = Down,</div><div>4 = Left,</div><div>6 = Right</div>
             </div>
           </div>
-          <div className="sm:flex sm:flex-col hidden w-[150px]">
+          <div className="sm:flex sm:flex-col hidden justify-center">
             <div className="flex w-full justify-between items-center text-sm">
               <div>&#8593; / W</div><div>Up</div>
             </div>
@@ -288,13 +308,16 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
             </div>
           </div>
         </div>
-        <div className="sm:hidden flex flex-col font-mono text-black text-center my-6">
-          <div className="font-bold">Tip</div>
-          <div>Tapping the numbers with your thumbs makes the game easier to play!</div>
-        </div>
+        <div className="font-bold text-center font-mono mt-8">Leaderboard</div>
+        <Leaderboard className="font-mono overflow-y-scroll max-h-[155px]" />
         <button onClick={startGame} className="btn btn-primary mt-2">
           Start Game
         </button>
+        {/* <div className="sm:hidden flex flex-col font-mono text-black text-center my-6">
+          <div className="font-bold">Tip</div>
+          <div>Tapping the numbers with your thumbs makes the game easier to play!</div>
+        </div> */}
+        
       </div>
     )
   }
@@ -367,17 +390,22 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
             <div className="flex h-full items-center w-full absolute">
               <div className="flex flex-col items-center justify-center w-full gap-2">
                 <p className="text-2xl font-bold text-red-600">Game Over!</p>
-                <CreateSnakeGame
-                  btnLabel="Play Again"
-                  onClick={() => {
-                    posthog.capture('play again', { 
-                      userAddress: sessionData?.user.address,
-                      userId: sessionData?.user.id,
-                    });
-                    void resetGame();
-                  }}
+                <Leaderboard 
+                  className="font-mono overflow-y-scroll max-h-[155px] w-full px-4"
                 />
-                <SaveSnakeGame gameId={id} />
+                <div className="grid grid-rows-2 gap-2">
+                  <SaveSnakeGame gameId={id} />
+                  <CreateSnakeGame
+                    btnLabel="Play Again"
+                    onClick={() => {
+                      posthog.capture('play again', { 
+                        userAddress: sessionData?.user.address,
+                        userId: sessionData?.user.id,
+                      });
+                      void resetGame();
+                    }}
+                  />
+                </div>
               </div>
             </div>
           )}

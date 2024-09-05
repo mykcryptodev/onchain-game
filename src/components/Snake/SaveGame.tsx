@@ -16,7 +16,8 @@ export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
   const { data: sessionData } = useSession();
   const tabs = ['Sign In', 'Save Score'] as readonly string[];
   const [activeTab, setActiveTab] = useState<string>(tabs[0]!);
-  const { mutateAsync: saveGame, isPending } = api.snake.saveGame.useMutation();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { mutateAsync: saveGame } = api.snake.saveGame.useMutation();
 
   useEffect(() => {
     if (!address) return;
@@ -30,7 +31,17 @@ export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
       userId: sessionData?.user.id,
       gameId,
     });
-    await saveGame({ id: gameId });
+    setIsLoading(true);
+    try {
+      await saveGame({ id: gameId });
+    } catch (e) {
+      console.error('Error saving game:', e);
+    } finally {
+      // wait 2.5 seconds then set isLoading to False
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 4500);
+    }
   }
 
   if (!sessionData?.user) return null;
@@ -89,10 +100,10 @@ export const SaveSnakeGame: FC<Props> = ({ gameId }) => {
   return (
     <button 
       className="btn"
-      disabled={isPending}
+      disabled={isLoading}
       onClick={handleSave}
     >
-      {isPending && (
+      {isLoading && (
         <div className="loading loading-spinner" />
       )}
       Save Game
