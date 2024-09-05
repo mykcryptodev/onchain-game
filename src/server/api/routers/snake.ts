@@ -16,6 +16,8 @@ import {
   protectedProcedure,
 } from "~/server/api/trpc";
 
+const ENGINE_URL = `https://engine-production-3357.up.railway.app`;
+
 type Action = {
   label: "up" | "down" | "left" | "right" | "eat" | "died";
   x: number;
@@ -127,30 +129,50 @@ export const snakeRouter = createTRPCRouter({
 
         const timestamp = Math.floor(Date.now() / 1000) // Current timestamp in seconds
 
-        const submitGameResultTx = submitGameResult({
-          contract: getContract({
-            client: thirdwebClient,
-            address: SNAKE_LEADERBOARD,
-            chain: baseSepolia,
-          }),
-          player: userAddress,
-          score: BigInt(game.score),
-          ipfsCid: ipfsUri.replace('ipfs://', ''),
-          timestamp: BigInt(timestamp),
-        });
+        const resp = void fetch(
+          `${ENGINE_URL}/contract/${baseSepolia.id}/${SNAKE_LEADERBOARD}/write`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${env.ENGINE_ACCESS_TOKEN}`,
+              "x-backend-wallet-address": `${env.ENGINE_WALLET_ADDRESS}`,
+            },
+            body: JSON.stringify({
+              functionName: "submitGameResult",
+              args: [
+                userAddress,
+                game.score,
+                ipfsUri.replace('ipfs://', ''),
+                timestamp,
+              ],
+            }),
+          },
+        );
+        console.log(JSON.stringify(resp));
+        // const submitGameResultTx = submitGameResult({
+        //   contract: getContract({
+        //     client: thirdwebClient,
+        //     address: SNAKE_LEADERBOARD,
+        //     chain: baseSepolia,
+        //   }),
+        //   player: userAddress,
+        //   score: BigInt(game.score),
+        //   ipfsCid: ipfsUri.replace('ipfs://', ''),
+        //   timestamp: BigInt(timestamp),
+        // });
 
-        const tx = await sendTransaction({
-          transaction: submitGameResultTx,
-          account: privateKeyToAccount({
-            client: thirdwebClient,
-            privateKey: env.BASE_PRIVATE_KEY,
-          }),
-        });
+        // const tx = await sendTransaction({
+        //   transaction: submitGameResultTx,
+        //   account: privateKeyToAccount({
+        //     client: thirdwebClient,
+        //     privateKey: env.BASE_PRIVATE_KEY,
+        //   }),
+        // });
 
         return {
           success: true,
           ipfsUri,
-          transactionHash: tx.transactionHash,
         }
       } catch (error) {
         console.error("Error submitting game result to blockchain:", error)

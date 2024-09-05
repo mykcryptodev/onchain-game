@@ -1,5 +1,6 @@
 import { type GetServerSideProps, type NextPage } from "next";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/router";
 import posthog from "posthog-js";
 import React, { type FC, useCallback, useEffect, useRef, useState } from "react";
 import { zeroAddress } from "viem";
@@ -27,18 +28,44 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   return {
     props: {
-      id,
+      initialGameId: id,
     },
   };
 };
 
 interface Props {
-  id: string;
+  initialGameId: string;
 }
 
-const SnakeGame: NextPage<Props> = ({ id }) => {
+const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
+  const router = useRouter();
+  const [id, setId] = useState<string>(initialGameId);
+  useEffect(() => {
+    // Update gameId when the route changes
+    const handleRouteChange = (url: string) => {
+      const newGameId = url.split('/').pop();
+      if (
+        newGameId !== undefined && 
+        newGameId !== id && 
+        newGameId !== 'play-guest' &&
+        newGameId !== 'create' &&
+        newGameId !== ''
+      ) {
+        setId(newGameId);
+      }
+    };
+
+    router.events.on('routeChangeComplete', handleRouteChange);
+
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChange);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
+
   const { data: sessionData } = useSession();
   const { address } = useAccount();
+
   const { data: userColorsData, isLoading: loadingUserColors } =
     api.nfts.getOwnedBaseColors.useQuery(
       {
@@ -60,6 +87,7 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
   const [snakeColor, setSnakeColor] = useState<string>("#808080");
   const directionQueue = useRef<Direction[]>([]);
   const [gameStarted, setGameStarted] = useState<boolean>(false);
+  const [leaderboardKey, setLeaderboardKey] = useState<string>(Date.now().toString());
 
   const startGame = () => {
     setGameStarted(true);
@@ -362,9 +390,19 @@ const SnakeGame: NextPage<Props> = ({ id }) => {
             <div className="flex h-full items-center w-full absolute">
               <div className="flex flex-col items-center justify-center w-full gap-2">
                 <p className="text-2xl font-bold text-red-600">Game Over!</p>
-                <Leaderboard className="font-mono overflow-y-scroll max-h-[155px] w-full px-4" />
+                <Leaderboard 
+                  key={leaderboardKey}
+                  className="font-mono overflow-y-scroll max-h-[155px] w-full px-4"
+                />
                 <div className="grid grid-rows-2 gap-2">
-                  <SaveSnakeGame gameId={id} />
+                  <SaveSnakeGame 
+                    gameId={id}
+                    onGameSaved={() => {
+                      setTimeout(() => {
+                        setLeaderboardKey(Date.now().toString());
+                      }, 4500);
+                    }}
+                  />
                   <CreateSnakeGame
                     btnLabel="Play Again"
                     onClick={() => {

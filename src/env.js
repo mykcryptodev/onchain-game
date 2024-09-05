@@ -28,6 +28,8 @@ export const env = createEnv({
     PINATA_API_KEY: z.string(),
     PINATA_API_SECRET: z.string(),
     BASE_PRIVATE_KEY: z.string(),
+    ENGINE_ACCESS_TOKEN: z.string(),
+    ENGINE_WALLET_ADDRESS: z.string(),
   },
 
   /**
@@ -62,6 +64,8 @@ export const env = createEnv({
     PINATA_API_KEY: process.env.PINATA_API_KEY,
     PINATA_API_SECRET: process.env.PINATA_API_SECRET,
     BASE_PRIVATE_KEY: process.env.BASE_PRIVATE_KEY,
+    ENGINE_ACCESS_TOKEN: process.env.ENGINE_ACCESS_TOKEN,
+    ENGINE_WALLET_ADDRESS: process.env.ENGINE_WALLET_ADDRESS,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

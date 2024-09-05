@@ -22,7 +22,7 @@ const CreateSnakeGame: FC<Props> = ({ btnLabel, onClick, className }) => {
       userId: sessionData?.user.id,
     });
     const { id } = await create();
-    void router.push(`/snake/${id}`, undefined, { shallow: true });
+    void router.push(`/snake/${id}`);
   }
 
   return (

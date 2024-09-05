@@ -41,6 +41,7 @@ export const Leaderboard: FC<Props> = ({ className }) => {
         setIsLoading(false);
       }
     }
+    setLeaderboard([]);
     void fetchLeaderboard();
   }, []);
 
@@ -53,7 +54,7 @@ export const Leaderboard: FC<Props> = ({ className }) => {
       {leaderboard?.map(
         ({ player, score, ipfsCid }, i) => 
       (
-        <div key={ipfsCid} className="flex items-center gap-4 justify-between w-full">
+        <div key={i} className="flex items-center gap-4 justify-between w-full">
           <div className="flex items-center gap-1">
             <span>{i + 1}</span>
             <Name address={player} className={`${className} font-normal mt-0`} chain={base} />
