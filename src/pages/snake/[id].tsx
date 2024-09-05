@@ -87,7 +87,6 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
   const [snakeColor, setSnakeColor] = useState<string>("#808080");
   const directionQueue = useRef<Direction[]>([]);
   const [gameStarted, setGameStarted] = useState<boolean>(false);
-  const [leaderboardKey, setLeaderboardKey] = useState<string>(Date.now().toString());
 
   const startGame = () => {
     setGameStarted(true);

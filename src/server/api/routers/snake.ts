@@ -2,12 +2,11 @@ import pinataSDK from "@pinata/sdk";
 import { z } from "zod";
 
 import { env } from "~/env.js"
-import { getLeaderboard, submitGameResult } from "~/thirdweb/84532/0x5decd7c00316f7b9b72c8c2d8b4e2d7e5a886259";
+import { getLeaderboard } from "~/thirdweb/84532/0x5decd7c00316f7b9b72c8c2d8b4e2d7e5a886259";
 const pinata = new pinataSDK(env.PINATA_API_KEY, env.PINATA_API_SECRET)
 
-import { getContract, sendTransaction } from "thirdweb";
+import { getContract } from "thirdweb";
 import { baseSepolia } from "thirdweb/chains";
-import { privateKeyToAccount } from "thirdweb/wallets";
 
 import { thirdwebClient } from "~/config/thirdweb";
 import { SNAKE_LEADERBOARD } from "~/constants/addresses";
