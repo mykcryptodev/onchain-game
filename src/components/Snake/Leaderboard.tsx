@@ -9,7 +9,7 @@ type Props = {
 }
 
 export const Leaderboard: FC<Props> = ({ className }) => {
-  const { data: leaderboard, isLoading, isFetching, isRefetching } = api.snake.getLeaderboard.useQuery(undefined, {
+  const { data: leaderboard, isLoading } = api.snake.getLeaderboard.useQuery(undefined, {
     refetchInterval: 5000,
     refetchIntervalInBackground: true,
   });
