@@ -328,6 +328,14 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
           if (btnLabel === 'home') {
             return document.getElementById('base_color_modal')?.click();
           }
+          if (btnLabel === 'voicemail') {
+            const prefixAudio = new Audio('/audio/prefix.wav');
+            const voicemailAudio = new Audio('/audio/voicemail.mp3');
+            prefixAudio.addEventListener('ended', () => {
+              void voicemailAudio.play();
+            });
+            void prefixAudio.play();
+          }
           const keyMap = {
             down: "ArrowDown",
             up: "ArrowUp",

@@ -20,7 +20,7 @@ const Nokia3310Wrapper: FC<Props> = ({ children, screenWidth, screenHeight, onBu
   const screenHeightPercent = 27;
 
   const buttonLayout = [
-    { label: '1', top: 69, left: 20, width: 12, height: 1 },
+    { label: 'voicemail', top: 69, left: 20, width: 12, height: 4 },
     { label: 'up', top: 70, left: 40, width: 20, height: 9 },
     { label: '3', top: 69.5, left: 69.5, width: 13, height: 1 },
     { label: 'left', top: 73.5, left: 18, width: 18, height: 15 },
