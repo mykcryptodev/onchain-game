@@ -1,5 +1,16 @@
+import pinataSDK from "@pinata/sdk";
 import { z } from "zod";
 
+import { env } from "~/env.js"
+import { submitGameResult } from "~/thirdweb/84532/0x5decd7c00316f7b9b72c8c2d8b4e2d7e5a886259";
+const pinata = new pinataSDK(env.PINATA_API_KEY, env.PINATA_API_SECRET)
+
+import { getContract, sendTransaction } from "thirdweb";
+import { baseSepolia } from "thirdweb/chains";
+import { privateKeyToAccount } from "thirdweb/wallets";
+
+import { thirdwebClient } from "~/config/thirdweb";
+import { SNAKE_LEADERBOARD } from "~/constants/addresses";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -90,7 +101,60 @@ export const snakeRouter = createTRPCRouter({
         throw new Error("You are not the player of this game");
       }
 
-      // TODO: publish the results onchain
-      return true;
+      const gameState = {
+        id: game.id,
+        userId: game.userId,
+        score: game.score,
+        history: game.history
+      }
+
+      let ipfsUri: string
+
+      try {
+        const result = await pinata.pinJSONToIPFS(gameState)
+        ipfsUri = `ipfs://${result.IpfsHash}`
+      } catch (error) {
+        console.error("Error saving game to IPFS:", error)
+        throw new Error("Failed to save game to IPFS")
+      }
+
+      // Submit the game result to the blockchain
+      try {
+        const userAddress = ctx.session.user.address
+        if (!userAddress) {
+          throw new Error("User address not found")
+        }
+
+        const timestamp = Math.floor(Date.now() / 1000) // Current timestamp in seconds
+
+        const submitGameResultTx = submitGameResult({
+          contract: getContract({
+            client: thirdwebClient,
+            address: SNAKE_LEADERBOARD,
+            chain: baseSepolia,
+          }),
+          player: userAddress,
+          score: BigInt(game.score),
+          ipfsCid: ipfsUri.replace('ipfs://', ''),
+          timestamp: BigInt(timestamp),
+        });
+
+        const tx = await sendTransaction({
+          transaction: submitGameResultTx,
+          account: privateKeyToAccount({
+            client: thirdwebClient,
+            privateKey: env.BASE_PRIVATE_KEY,
+          }),
+        });
+
+        return {
+          success: true,
+          ipfsUri,
+          transactionHash: tx.transactionHash,
+        }
+      } catch (error) {
+        console.error("Error submitting game result to blockchain:", error)
+        throw new Error("Failed to submit game result to blockchain")
+      }
     }),
 });
