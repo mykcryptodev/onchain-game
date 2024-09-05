@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+import pinataSDK from "@pinata/sdk";
+import { env } from "~/env.js"
+const pinata = new pinataSDK(env.PINATA_API_KEY, env.PINATA_API_SECRET)
+
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -90,7 +94,6 @@ export const snakeRouter = createTRPCRouter({
         throw new Error("You are not the player of this game");
       }
 
-      // Create a JSON object with the game state
       const gameState = {
         id: game.id,
         userId: game.userId,
@@ -98,22 +101,13 @@ export const snakeRouter = createTRPCRouter({
         history: game.history
       }
 
+      let ipfsUri: string
+
       try {
-        // Upload the game state to IPFS via Pinata
         const result = await pinata.pinJSONToIPFS(gameState)
-
-        // Update the game record with the IPFS hash
-        const updatedGame = await ctx.db.snakeGame.update({
-          where: { id: input.id },
-          data: {
-            ipfsHash: result.IpfsHash,
-          },
-        })
-
         return {
           success: true,
-          ipfsHash: result.IpfsHash,
-          game: updatedGame,
+          ipfsUri: `ipfs://${result.IpfsHash}`,
         }
       } catch (error) {
         console.error("Error saving game to IPFS:", error)
@@ -128,7 +122,12 @@ export const snakeRouter = createTRPCRouter({
       // add the private key to the server environment variables 
       // create a function to call submitGameResult using the server private key
       // get the address of the current user from the connected wallet 
+      
       // call the submitGameResult function with the user address game results, the IPFS CID, and the timestamp
+      // user address you can get from the ctx.session.user.address
+      // game results is the game state object
+      // IPFS CID is the IPFS URI returned from the pinGameToIPFS function
+      // timestamp is the current timestamp
 
       return true;
     }),
