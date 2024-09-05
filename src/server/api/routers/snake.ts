@@ -9,6 +9,8 @@ import {
   protectedProcedure,
 } from "~/server/api/trpc";
 
+import { submitGameResult } from '~/utils/contractHelper';
+
 type Action = {
   label: "up" | "down" | "left" | "right" | "eat" | "died";
   x: number;
@@ -105,30 +107,39 @@ export const snakeRouter = createTRPCRouter({
 
       try {
         const result = await pinata.pinJSONToIPFS(gameState)
-        return {
-          success: true,
-          ipfsUri: `ipfs://${result.IpfsHash}`,
-        }
+        ipfsUri = `ipfs://${result.IpfsHash}`
       } catch (error) {
         console.error("Error saving game to IPFS:", error)
         throw new Error("Failed to save game to IPFS")
       }
-    }),
 
-      // TODO: publish the results onchain
-      // Implement ethers.js to interact with the contract
-      // add the contract ABI to the server 
-      // create the contract object with the contract address and the contract ABI
-      // add the private key to the server environment variables 
-      // create a function to call submitGameResult using the server private key
-      // get the address of the current user from the connected wallet 
-      
-      // call the submitGameResult function with the user address game results, the IPFS CID, and the timestamp
-      // user address you can get from the ctx.session.user.address
-      // game results is the game state object
-      // IPFS CID is the IPFS URI returned from the pinGameToIPFS function
-      // timestamp is the current timestamp
+      // Submit the game result to the blockchain
+      try {
+        const userAddress = ctx.session.user.address
+        if (!userAddress) {
+          throw new Error("User address not found")
+        }
 
-      return true;
+        const timestamp = Math.floor(Date.now() / 1000) // Current timestamp in seconds
+
+        const tx = await submitGameResult(
+          userAddress,
+          game.score,
+          ipfsUri.replace('ipfs://', ''),
+          timestamp
+        )
+
+        // Wait for the transaction to be mined
+        await tx.wait()
+
+        return {
+          success: true,
+          ipfsUri,
+          transactionHash: tx.hash,
+        }
+      } catch (error) {
+        console.error("Error submitting game result to blockchain:", error)
+        throw new Error("Failed to submit game result to blockchain")
+      }
     }),
 });
