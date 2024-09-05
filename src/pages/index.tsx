@@ -31,7 +31,7 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <div className="flex flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold mb-4">Create Snake Game</h1>
+      <h1 className="text-4xl font-bold mb-4">Play {APP_NAME}</h1>
       {sessionData?.user.address ? (
         <CreateGame btnLabel="Play Snake" />
       ) : (

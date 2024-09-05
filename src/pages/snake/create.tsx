@@ -5,6 +5,7 @@ import posthog from "posthog-js";
 
 import CreateGame from "~/components/Snake/Create";
 import SignInWithEthereum from "~/components/Wallet/SignIn";
+import { APP_NAME } from "~/constants";
 
 const CreateSnakeGame: NextPage = () => {
   const router = useRouter();
@@ -20,7 +21,7 @@ const CreateSnakeGame: NextPage = () => {
 
   return (
     <div className="flex flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold mb-4">Create Snake Game</h1>
+      <h1 className="text-4xl font-bold mb-4">Play {APP_NAME}</h1>
       {sessionData?.user.address ? (
         <CreateGame btnLabel="Play Snake" />
       ) : (
