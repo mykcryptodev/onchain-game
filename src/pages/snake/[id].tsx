@@ -10,6 +10,7 @@ import ChooseSnakeColors from "~/components/Snake/ChooseSnakeColors";
 import CreateSnakeGame from "~/components/Snake/Create";
 import { Leaderboard } from "~/components/Snake/Leaderboard";
 import SaveSnakeGame from "~/components/Snake/SaveGame";
+import Share from "~/components/Snake/Share";
 import NokiaWrapper from "~/components/utils/NokiaWrapper";
 import { Portal } from "~/components/utils/Portal";
 import { api } from "~/utils/api";
@@ -321,11 +322,6 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
         <button onClick={startGame} className="btn btn-primary mt-2">
           Start Game
         </button>
-        {/* <div className="sm:hidden flex flex-col font-mono text-black text-center my-6">
-          <div className="font-bold">Tip</div>
-          <div>Tapping the numbers with your thumbs makes the game easier to play!</div>
-        </div> */}
-        
       </div>
     )
   }
@@ -425,6 +421,7 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
                     }}
                   />
                 </div>
+                <Share score={score} />
               </div>
             </div>
           )}
