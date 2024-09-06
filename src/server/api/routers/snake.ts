@@ -71,6 +71,7 @@ export const snakeRouter = createTRPCRouter({
         length: z.number(),
       }),
       gridSize: z.number(),
+      timestamp: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
       const game = await ctx.db.snakeGame.findFirst({
@@ -83,7 +84,21 @@ export const snakeRouter = createTRPCRouter({
         throw new Error("You are not the player of this game");
       }
 
+      // the timestamp is a UTC string, check that it was in the last 5 seconds
+      const now = new Date();
+      const timestamp = new Date(input.timestamp);
+      const difference = now.getTime() - timestamp.getTime();
+      if (difference > 5000) {
+        throw new Error("Timestamp is too old");
+      }
+
       const currentHistory = game.history as History;
+
+      // verify that the current score matches up to the number of times the snake has eaten in its history
+      const numTimesEaten = currentHistory.actions.filter((action) => action.label === "eat").length;
+      if (numTimesEaten !== input.action.currentScore - 1) {
+        throw new Error("Invalid score");
+      }
 
       // if we find any action with a label of "died" in the game history, throw an error
       if (currentHistory.actions.some((action) => action.label === "died")) {
@@ -122,10 +137,14 @@ export const snakeRouter = createTRPCRouter({
         throw new Error("You are not the player of this game");
       }
 
+      // the game's score is equal to the number of times the snake has eaten
+      const gameHistory = game.history as History;
+      const numTimesEaten = gameHistory.actions.filter((action) => action.label === "eat").length;
+
       const gameState = {
         id: game.id,
         userId: game.userId,
-        score: game.score,
+        score: numTimesEaten,
         history: game.history
       }
 
