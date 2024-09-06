@@ -9,7 +9,6 @@ import CreateGame from "~/components/Snake/Create";
 import { Wallet } from "~/components/Wallet";
 import SignInWithEthereum from "~/components/Wallet/SignIn";
 import { APP_DESCRIPTION, APP_NAME, APP_URL } from "~/constants";
-import { env } from "~/env";
 
 export default function Home() {
   const router = useRouter();
@@ -28,7 +27,7 @@ export default function Home() {
   const pageTitle = `Play ${APP_NAME}`;
   const pageDescription = APP_DESCRIPTION;
   const pageUrl = APP_URL;
-  const imageUrl = "/images/og.gif";
+  const imageUrl = `${APP_URL}/images/og.gif`;
 
   return (
     <>
