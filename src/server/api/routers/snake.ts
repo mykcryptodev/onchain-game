@@ -177,4 +177,34 @@ export const snakeRouter = createTRPCRouter({
         throw new Error("Failed to submit game result to blockchain")
       }
     }),
+  analytics: publicProcedure
+    .query(async ({ ctx }) => {
+      // get the number of total snake games
+      const totalGames = await ctx.db.snakeGame.count();
+      // get the number of unique users who have created snake games
+      const uniqueUsersWhoCreatedGames = await ctx.db.user.count({
+        where: {
+          snakeGames: {
+            some: {}
+          }
+        }
+      });
+
+      // get the number of players with an address
+      const playersWithAddress = await ctx.db.snakeGame.count({
+        where: {
+          user: {
+            address: {
+              not: null,
+            },
+          },
+        },
+      });
+
+      return {
+        totalGames,
+        uniqueUsersWhoCreatedGames,
+        playersWithAddress,
+      };
+    }),
 });
