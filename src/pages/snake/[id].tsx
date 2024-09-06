@@ -124,7 +124,6 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
     setFood(INITIAL_FOOD);
     setGameOver(false);
     setScore(0);
-    setActionLength(0);
     directionQueue.current = [];
   };
 
