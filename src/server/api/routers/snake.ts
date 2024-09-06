@@ -191,20 +191,18 @@ export const snakeRouter = createTRPCRouter({
       });
 
       // get the number of players with an address
-      const playersWithAddress = await ctx.db.snakeGame.count({
+      const playersWithAddressConnected = await ctx.db.user.count({
         where: {
-          user: {
-            address: {
-              not: null,
-            },
-          },
-        },
+          address: {
+            not: null
+          }
+        }
       });
 
       return {
         totalGames,
         uniqueUsersWhoCreatedGames,
-        playersWithAddress,
+        playersWithAddressConnected,
       };
     }),
 });

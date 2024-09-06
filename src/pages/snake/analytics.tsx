@@ -12,7 +12,7 @@ const AnalyticsPage: NextPage = () => {
         <>
           <p>Total Snake Games: {data.totalGames.toLocaleString()}</p>
           <p>Unique Users Who Created Games: {data.uniqueUsersWhoCreatedGames.toLocaleString()}</p>
-          <p>Players with Address: {data.playersWithAddress.toLocaleString()}</p>
+          <p>Players with Address: {data.playersWithAddressConnected.toLocaleString()}</p>
         </>
       ) : (
         <p>Loading...</p>
