@@ -99,30 +99,23 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
     setGameStarted(true);
   }
 
-  const [actionLength, setActionLength] = useState(0);
 
   const recordSnakeMove = useCallback(
     (action: "up" | "down" | "left" | "right" | "eat" | "died", x: number, y: number) => {
-      console.log({ actionLength })
-      setActionLength((prevActionLength) => {
-        const updatedActionLength = prevActionLength + 1;  
-        recordMove({
-          id,
-          action: {
-            label: action,
-            x,
-            y,
-            currentScore: score,
-            length: snake.length,
-          },
-          gridSize: GRID_SIZE,
-          timestamp: new Date().toUTCString(),
-        });
-  
-        return updatedActionLength;
+      recordMove({
+        id,
+        action: {
+          label: action,
+          x,
+          y,
+          currentScore: score,
+          length: snake.length,
+        },
+        gridSize: GRID_SIZE,
+        timestamp: new Date().toUTCString(),
       });
     },
-    [actionLength, id, recordMove, score, snake.length],
+    [id, recordMove, score, snake.length],
   );
 
   const resetGame = () => {
