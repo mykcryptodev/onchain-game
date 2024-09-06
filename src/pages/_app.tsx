@@ -1,3 +1,4 @@
+import { FrameMetadata } from '@coinbase/onchainkit/frame';
 import { type AppType } from "next/app";
 import Head from 'next/head';
 import { type Session } from "next-auth";
@@ -51,6 +52,19 @@ const MyApp: AppType<{ session: Session | null }> = ({
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
         <meta name="twitter:image" content={imageUrl} />
+        <FrameMetadata
+          buttons={[
+            {
+              action: 'link',
+              label: '🐍 Play Snake',
+              target: pageUrl,
+            },
+          ]}
+          image={{
+            src: imageUrl,
+            aspectRatio: '1.91:1'
+          }}
+        />
       </Head>
       <PostHogProvider client={posthog}>
       <SessionProvider session={session}>
