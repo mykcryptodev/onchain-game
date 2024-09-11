@@ -94,10 +94,29 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
   const [snakeColor, setSnakeColor] = useState<string>("#808080");
   const directionQueue = useRef<Direction[]>([]);
   const [gameStarted, setGameStarted] = useState<boolean>(false);
-
+  
   const startGame = () => {
     setGameStarted(true);
   }
+
+
+  const recordSnakeMove = useCallback(
+    (action: "up" | "down" | "left" | "right" | "eat" | "died", x: number, y: number) => {
+      recordMove({
+        id,
+        action: {
+          label: action,
+          x,
+          y,
+          currentScore: score,
+          length: snake.length,
+        },
+        gridSize: GRID_SIZE,
+        timestamp: new Date().toUTCString(),
+      });
+    },
+    [id, recordMove, score, snake.length],
+  );
 
   const resetGame = () => {
     setSnake(INITIAL_SNAKE);
@@ -130,17 +149,7 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
       head.y >= GRID_SIZE
     ) {
       setGameOver(true);
-      recordMove({
-        id,
-        action: {
-          label: "died",
-          x: head.x,
-          y: head.y,
-          currentScore: score,
-          length: snake.length,
-        },
-        gridSize: GRID_SIZE,
-      });
+      recordSnakeMove("died", head.x, head.y);
       return;
     }
 
@@ -151,17 +160,7 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
         .some((segment) => segment.x === head.x && segment.y === head.y)
     ) {
       setGameOver(true);
-      recordMove({
-        id,
-        action: {
-          label: "died",
-          x: head.x,
-          y: head.y,
-          currentScore: score,
-          length: snake.length,
-        },
-        gridSize: GRID_SIZE,
-      });
+      recordSnakeMove("died", head.x, head.y);
       return;
     }
 
@@ -169,17 +168,7 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
 
     // Check if snake ate food
     if (head.x === food.x && head.y === food.y) {
-      recordMove({
-        id,
-        action: {
-          label: "eat",
-          x: head.x,
-          y: head.y,
-          currentScore: score + 1,
-          length: snake.length + 1,
-        },
-        gridSize: GRID_SIZE,
-      });
+      recordSnakeMove("eat", head.x, head.y);
       setScore((prevScore) => prevScore + 1);
       setFood(generateFood(newSnake));
     } else {
@@ -213,17 +202,7 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
       const handleRecordMove = (
         label: "up" | "down" | "left" | "right" | "eat" | "died",
       ) => {
-        recordMove({
-          id,
-          action: {
-            label,
-            x: snake[0]?.x ?? 0,
-            y: snake[0]?.y ?? 0,
-            currentScore: score,
-            length: snake.length,
-          },
-          gridSize: GRID_SIZE,
-        });
+        recordSnakeMove(label, snake[0]!.x, snake[0]!.y);
       };
 
       const getNextDirection = (key: string): Direction | null => {
@@ -268,7 +247,7 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
         }
       }
     },
-    [gameOver, id, recordMove, score, snake, direction],
+    [gameOver, recordSnakeMove, snake, direction],
   );
 
   useEffect(() => {
@@ -287,10 +266,7 @@ const SnakeGame: NextPage<Props> = ({ initialGameId }) => {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [handleKeyPress]);
 
-  console.log({ userColors });
-
   let voicemailAudio: HTMLAudioElement | null = null;
-
 
   const StartGame: FC = () => {
     return (
